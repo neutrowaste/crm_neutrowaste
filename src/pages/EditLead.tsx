@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -44,11 +43,10 @@ const leadSchema = z.object({
   company: z
     .string()
     .min(2, 'O nome da empresa deve ter pelo menos 2 caracteres.'),
-  industry: z.string().optional(),
   status: z.enum(['Novo', 'Contatado', 'Qualificado', 'Proposta', 'Ganho']),
   source: z.enum(['Site', 'Indicação', 'Ligação', 'Evento']),
   value: z.coerce.number().min(0).optional(),
-  notes: z.string().optional(),
+  assignedTo: z.string().optional(),
 })
 
 export default function EditLead() {
@@ -57,7 +55,7 @@ export default function EditLead() {
   const { toast } = useToast()
   const { leads, updateLead } = useLeads()
   const { logs, addLog } = useLogs()
-  const { user } = useAuth()
+  const { user, allUsers } = useAuth()
 
   const lead = leads.find((l) => l.id === id)
 
@@ -101,13 +99,11 @@ export default function EditLead() {
           {lead.name} - {lead.company}
         </p>
       </div>
-
       <Tabs defaultValue="details">
         <TabsList className="mb-6">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="history">Histórico e Logs</TabsTrigger>
         </TabsList>
-
         <TabsContent value="details">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -125,7 +121,6 @@ export default function EditLead() {
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -138,7 +133,6 @@ export default function EditLead() {
                         <FormControl>
                           <Input type="email" {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -151,7 +145,6 @@ export default function EditLead() {
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -164,7 +157,6 @@ export default function EditLead() {
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -198,31 +190,6 @@ export default function EditLead() {
                   />
                   <FormField
                     control={form.control}
-                    name="source"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Origem</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Site">Site</SelectItem>
-                            <SelectItem value="Indicação">Indicação</SelectItem>
-                            <SelectItem value="Ligação">Ligação</SelectItem>
-                            <SelectItem value="Evento">Evento</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="value"
                     render={({ field }) => (
                       <FormItem>
@@ -230,7 +197,32 @@ export default function EditLead() {
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
-                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="assignedTo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vendedor Responsável</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value || ''}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um Vendedor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {allUsers.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormItem>
                     )}
                   />
@@ -249,7 +241,6 @@ export default function EditLead() {
             </form>
           </Form>
         </TabsContent>
-
         <TabsContent value="history">
           <Card>
             <CardHeader>
@@ -258,7 +249,7 @@ export default function EditLead() {
             <CardContent>
               {leadLogs.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
-                  Nenhuma atividade registrada ainda.
+                  Nenhuma atividade registrada.
                 </p>
               ) : (
                 <Table>
@@ -267,7 +258,6 @@ export default function EditLead() {
                       <TableHead>Data</TableHead>
                       <TableHead>Usuário</TableHead>
                       <TableHead>Ação</TableHead>
-                      <TableHead>Detalhes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -280,9 +270,6 @@ export default function EditLead() {
                         </TableCell>
                         <TableCell>{log.userName}</TableCell>
                         <TableCell>{log.action}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {log.details}
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

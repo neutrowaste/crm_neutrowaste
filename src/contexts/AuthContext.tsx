@@ -15,6 +15,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null
+  allUsers: User[]
   isLoading: boolean
   login: (email: string, pass: string) => Promise<void>
   register: (
@@ -28,8 +29,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const defaultUsers: User[] = [
+  {
+    id: 'admin-1',
+    name: 'Administrador',
+    email: 'admin@neutrowaste.com',
+    role: 'Admin',
+  },
+  {
+    id: 'seller-1',
+    name: 'Vendedor',
+    email: 'vendedor@neutrowaste.com',
+    role: 'Seller',
+  },
+]
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -38,9 +55,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setUser(JSON.parse(storedUser))
       } catch (e) {
-        console.error('Failed to parse user from local storage', e)
+        console.error(e)
       }
     }
+
+    const storedUsers = localStorage.getItem('@neutrowaste:users')
+    let parsedUsers = storedUsers ? JSON.parse(storedUsers) : []
+
+    // Ensure default users exist in allUsers list
+    const defaultsToAdd = defaultUsers.filter(
+      (du) => !parsedUsers.some((pu: any) => pu.email === du.email),
+    )
+    if (defaultsToAdd.length > 0) {
+      parsedUsers = [...parsedUsers, ...defaultsToAdd]
+      localStorage.setItem('@neutrowaste:users', JSON.stringify(parsedUsers))
+    }
+
+    setAllUsers(
+      parsedUsers.map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+      })),
+    )
     setIsLoading(false)
   }, [])
 
@@ -50,24 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Default mock users for testing
     if (email === 'admin@neutrowaste.com' && pass === 'admin123') {
-      const adminUser: User = {
-        id: 'admin-1',
-        name: 'Administrador',
-        email,
-        role: 'Admin',
-      }
+      const adminUser = defaultUsers[0]
       setUser(adminUser)
       localStorage.setItem('@neutrowaste:user', JSON.stringify(adminUser))
       return
     }
 
     if (email === 'vendedor@neutrowaste.com' && pass === 'vendedor123') {
-      const sellerUser: User = {
-        id: 'seller-1',
-        name: 'Vendedor',
-        email,
-        role: 'Seller',
-      }
+      const sellerUser = defaultUsers[1]
       setUser(sellerUser)
       localStorage.setItem('@neutrowaste:user', JSON.stringify(sellerUser))
       return
@@ -111,14 +139,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: pass,
       role,
     }
-    users.push(newUser)
-    localStorage.setItem('@neutrowaste:users', JSON.stringify(users))
+
+    const updatedUsers = [...users, newUser]
+    localStorage.setItem('@neutrowaste:users', JSON.stringify(updatedUsers))
+    setAllUsers(
+      updatedUsers.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+      })),
+    )
 
     const loggedUser: User = {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role,
+      role: newUser.role as 'Admin' | 'Seller',
     }
     setUser(loggedUser)
     localStorage.setItem('@neutrowaste:user', JSON.stringify(loggedUser))
@@ -130,7 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, allUsers, isLoading, login, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -138,8 +177,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
   return context
 }

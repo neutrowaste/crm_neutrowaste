@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { calculateLeadScore, sendBrowserNotification } from '@/lib/utils'
 
 export interface Lead {
   id: string
@@ -17,6 +18,7 @@ export interface Lead {
   value?: number
   industry?: string
   notes?: string
+  assignedTo?: string
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +49,7 @@ const mockLeads: Lead[] = [
     status: 'Qualificado',
     source: 'Site',
     value: 15000,
+    assignedTo: 'admin-1',
     createdAt: '2024-03-20T10:00:00Z',
     updatedAt: new Date().toISOString(),
   },
@@ -59,6 +62,7 @@ const mockLeads: Lead[] = [
     status: 'Novo',
     source: 'Indicação',
     value: 8000,
+    assignedTo: 'seller-1',
     createdAt: '2024-03-21T14:30:00Z',
     updatedAt: '2024-03-21T14:30:00Z',
   },
@@ -70,6 +74,7 @@ const mockLeads: Lead[] = [
     status: 'Proposta',
     source: 'Ligação',
     value: 25000,
+    assignedTo: 'seller-1',
     createdAt: '2024-03-18T09:15:00Z',
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
   },
@@ -82,6 +87,7 @@ const mockLeads: Lead[] = [
     status: 'Contatado',
     source: 'Evento',
     value: 12000,
+    assignedTo: 'admin-1',
     createdAt: '2024-03-22T11:45:00Z',
     updatedAt: '2024-03-22T11:45:00Z',
   },
@@ -94,6 +100,7 @@ const mockLeads: Lead[] = [
     status: 'Ganho',
     source: 'Site',
     value: 45000,
+    assignedTo: 'admin-1',
     createdAt: '2024-03-15T16:20:00Z',
     updatedAt: '2024-03-15T16:20:00Z',
   },
@@ -145,8 +152,20 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+
     setLeads((prev) => [lead, ...prev])
     addNotification(`Novo lead: ${lead.name} cadastrado`)
+
+    const score = calculateLeadScore(lead)
+    if (score >= 80) {
+      sendBrowserNotification('🚀 Lead Quente!', {
+        body: `O lead ${lead.name} foi criado com score alto (${score})!`,
+      })
+      addNotification(
+        `Atenção: Novo lead ${lead.name} com Score Alto (${score})`,
+      )
+    }
+
     return id
   }
 
@@ -154,16 +173,31 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     setLeads((prev) =>
       prev.map((lead) => {
         if (lead.id === id) {
+          const updatedLead = {
+            ...lead,
+            ...updatedData,
+            updatedAt: new Date().toISOString(),
+          }
+
           if (updatedData.status && lead.status !== updatedData.status) {
             addNotification(
               `Status do lead ${lead.name} alterado para ${updatedData.status}`,
             )
           }
-          return {
-            ...lead,
-            ...updatedData,
-            updatedAt: new Date().toISOString(),
+
+          const oldScore = calculateLeadScore(lead)
+          const newScore = calculateLeadScore(updatedLead)
+
+          if (oldScore < 80 && newScore >= 80) {
+            sendBrowserNotification('🔥 Lead Aqueceu!', {
+              body: `O lead ${lead.name} atingiu um score alto (${newScore})!`,
+            })
+            addNotification(
+              `Lead ${lead.name} atingiu Score Alto (${newScore})!`,
+            )
           }
+
+          return updatedLead
         }
         return lead
       }),

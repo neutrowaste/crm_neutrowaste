@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTemplates, EmailTemplate } from '@/contexts/TemplatesContext'
+import { useWhatsApp, WhatsAppTemplate } from '@/contexts/WhatsAppContext'
 import {
   Card,
   CardContent,
@@ -25,24 +26,29 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Plus, Edit, Trash } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Plus, Edit, Trash, Mail, MessageCircle } from 'lucide-react'
 
 export default function Templates() {
   const { templates, addTemplate, updateTemplate, deleteTemplate } =
     useTemplates()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const { waTemplates, addWaTemplate, updateWaTemplate, deleteWaTemplate } =
+    useWhatsApp()
 
+  const [activeTab, setActiveTab] = useState('email')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
 
-  const openDialog = (tpl?: EmailTemplate) => {
-    if (tpl) {
-      setEditingId(tpl.id)
-      setName(tpl.name)
-      setSubject(tpl.subject)
-      setBody(tpl.body)
+  const openDialog = (item?: any) => {
+    if (item) {
+      setEditingId(item.id)
+      setName(item.name)
+      setBody(item.text || item.body)
+      if (activeTab === 'email') setSubject(item.subject)
     } else {
       setEditingId(null)
       setName('')
@@ -53,10 +59,12 @@ export default function Templates() {
   }
 
   const handleSave = () => {
-    if (editingId) {
-      updateTemplate(editingId, { name, subject, body })
+    if (activeTab === 'email') {
+      if (editingId) updateTemplate(editingId, { name, subject, body })
+      else addTemplate({ name, subject, body })
     } else {
-      addTemplate({ name, subject, body })
+      if (editingId) updateWaTemplate(editingId, { name, text: body })
+      else addWaTemplate({ name, text: body })
     }
     setIsDialogOpen(false)
   }
@@ -66,10 +74,10 @@ export default function Templates() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Modelos de E-mail
+            Modelos de Mensagens
           </h1>
           <p className="text-muted-foreground">
-            Crie templates para enviar e-mails padronizados rapidamente.
+            Gerencie templates para E-mail e WhatsApp automáticos.
           </p>
         </div>
         <Button onClick={() => openDialog()}>
@@ -77,60 +85,135 @@ export default function Templates() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Meus Modelos</CardTitle>
-          <CardDescription>
-            Variáveis disponíveis:{' '}
-            {'{{company_name}}, {{contact_name}}, {{lead_value}}'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome do Modelo</TableHead>
-                <TableHead>Assunto</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-4">
-                    Nenhum modelo criado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                templates.map((tpl) => (
-                  <TableRow key={tpl.id}>
-                    <TableCell className="font-medium">{tpl.name}</TableCell>
-                    <TableCell>{tpl.subject}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDialog(tpl)}
-                        >
-                          <Edit className="h-4 w-4 text-blue-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteTemplate(tpl.id)}
-                        >
-                          <Trash className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+          <TabsTrigger value="email">
+            <Mail className="w-4 h-4 mr-2" /> E-mail
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp">
+            <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="email" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Modelos de E-mail</CardTitle>
+              <CardDescription>
+                Variáveis:{' '}
+                {'{{company_name}}, {{contact_name}}, {{lead_value}}'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Assunto</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {templates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-4">
+                        Nenhum modelo criado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    templates.map((tpl) => (
+                      <TableRow key={tpl.id}>
+                        <TableCell className="font-medium">
+                          {tpl.name}
+                        </TableCell>
+                        <TableCell>{tpl.subject}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog(tpl)}
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteTemplate(tpl.id)}
+                            >
+                              <Trash className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Modelos de WhatsApp</CardTitle>
+              <CardDescription>
+                Variáveis: {'{{company_name}}, {{lead_name}}'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Prévia da Mensagem</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {waTemplates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-4">
+                        Nenhum modelo criado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    waTemplates.map((tpl) => (
+                      <TableRow key={tpl.id}>
+                        <TableCell className="font-medium">
+                          {tpl.name}
+                        </TableCell>
+                        <TableCell className="truncate max-w-md">
+                          {tpl.text}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog(tpl)}
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteWaTemplate(tpl.id)}
+                            >
+                              <Trash className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
@@ -145,23 +228,24 @@ export default function Templates() {
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Proposta Inicial"
+                placeholder="Ex: Apresentação"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Assunto</label>
-              <Input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Apresentação para {{company_name}}"
-              />
-            </div>
+            {activeTab === 'email' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Assunto</label>
+                <Input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Apresentação para {{company_name}}"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Corpo da Mensagem</label>
               <Textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="Olá {{contact_name}}..."
                 className="min-h-[150px]"
               />
             </div>
@@ -170,7 +254,10 @@ export default function Templates() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={!name || !subject || !body}>
+            <Button
+              onClick={handleSave}
+              disabled={!name || !body || (activeTab === 'email' && !subject)}
+            >
               Salvar
             </Button>
           </DialogFooter>

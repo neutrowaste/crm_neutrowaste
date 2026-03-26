@@ -38,6 +38,7 @@ const leadSchema = z.object({
   source: z.enum(['Site', 'Indicação', 'Ligação', 'Evento']),
   value: z.coerce.number().min(0).optional(),
   notes: z.string().optional(),
+  assignedTo: z.string().optional(),
 })
 
 type LeadFormValues = z.infer<typeof leadSchema>
@@ -45,7 +46,7 @@ type LeadFormValues = z.infer<typeof leadSchema>
 export default function NewLead() {
   const { addLead } = useLeads()
   const { addLog } = useLogs()
-  const { user } = useAuth()
+  const { user, allUsers } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -60,6 +61,7 @@ export default function NewLead() {
       status: 'Novo',
       source: 'Site',
       notes: '',
+      assignedTo: user?.id || '',
     },
   })
 
@@ -75,10 +77,7 @@ export default function NewLead() {
         details: 'Lead cadastrado no sistema',
       })
     }
-    toast({
-      title: 'Sucesso!',
-      description: 'Lead cadastrado com sucesso!',
-    })
+    toast({ title: 'Sucesso!', description: 'Lead cadastrado com sucesso!' })
     navigate('/leads')
   }
 
@@ -88,16 +87,12 @@ export default function NewLead() {
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
           Cadastrar Novo Lead
         </h1>
-        <p className="text-muted-foreground">
-          Preencha as informações abaixo para adicionar um novo lead.
-        </p>
       </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Informações Pessoais</CardTitle>
+              <CardTitle>Informações Básicas</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2">
               <FormField
@@ -143,35 +138,14 @@ export default function NewLead() {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Detalhes da Empresa</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome da Empresa</FormLabel>
+                    <FormLabel>Empresa</FormLabel>
                     <FormControl>
                       <Input placeholder="Empresa S/A" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="industry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Setor</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Tecnologia" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -245,8 +219,35 @@ export default function NewLead() {
                   <FormItem>
                     <FormLabel>Valor Esperado (R$)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="5000" {...field} />
+                      <Input type="number" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="assignedTo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Atribuído a</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o Vendedor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {allUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

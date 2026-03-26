@@ -4,6 +4,7 @@ import { useLeads, Lead } from '@/contexts/LeadsContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLogs } from '@/contexts/LogsContext'
 import { useTemplates } from '@/contexts/TemplatesContext'
+import { useWhatsApp } from '@/contexts/WhatsAppContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -65,14 +66,19 @@ export default function Leads() {
   const { leads, removeLead } = useLeads()
   const { addLog } = useLogs()
   const { templates } = useTemplates()
+  const { waTemplates } = useWhatsApp()
   const { user } = useAuth()
   const { toast } = useToast()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
+
   const [emailDialogLead, setEmailDialogLead] = useState<Lead | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState('')
+
+  const [waDialogLead, setWaDialogLead] = useState<Lead | null>(null)
+  const [selectedWaTemplate, setSelectedWaTemplate] = useState('')
 
   const sortedLeads = useMemo(() => {
     let filtered = leads.filter((lead) => {
@@ -106,43 +112,6 @@ export default function Leads() {
     toast({ title: 'Lead excluído', description: 'Lead excluído com sucesso.' })
   }
 
-  const exportCSV = () => {
-    const headers = [
-      'Nome',
-      'Empresa',
-      'Score',
-      'E-mail',
-      'Telefone',
-      'Status',
-      'Origem',
-      'Valor',
-      'Data de Criação',
-    ]
-    const csvContent = [
-      headers.join(','),
-      ...sortedLeads.map((l) =>
-        [
-          `"${l.name}"`,
-          `"${l.company}"`,
-          calculateLeadScore(l),
-          `"${l.email}"`,
-          `"${l.phone || ''}"`,
-          `"${l.status}"`,
-          `"${l.source}"`,
-          l.value || 0,
-          `"${format(new Date(l.createdAt), 'dd/MM/yyyy')}"`,
-        ].join(','),
-      ),
-    ].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.setAttribute('download', 'leads.csv')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   const selectedTemplateObj = templates.find((t) => t.id === selectedTemplate)
   const previewSubject =
     selectedTemplateObj?.subject
@@ -156,6 +125,12 @@ export default function Leads() {
       .replace(/{{contact_name}}/g, emailDialogLead?.name || '')
       .replace(/{{lead_value}}/g, emailDialogLead?.value?.toString() || '') ||
     ''
+
+  const selectedWaObj = waTemplates.find((t) => t.id === selectedWaTemplate)
+  const previewWaBody =
+    selectedWaObj?.text
+      .replace(/{{lead_name}}/g, waDialogLead?.name || '')
+      .replace(/{{company_name}}/g, waDialogLead?.company || '') || ''
 
   return (
     <div className="flex flex-col gap-6 print:gap-2">
@@ -180,10 +155,6 @@ export default function Leads() {
               <DropdownMenuItem onClick={() => window.print()}>
                 <FileText className="mr-2 h-4 w-4" />
                 PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportCSV}>
-                <TableIcon className="mr-2 h-4 w-4" />
-                Excel (CSV)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -212,21 +183,12 @@ export default function Leads() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Novo">Novo</SelectItem>
               <SelectItem value="Contatado">Contatado</SelectItem>
               <SelectItem value="Qualificado">Qualificado</SelectItem>
               <SelectItem value="Proposta">Proposta</SelectItem>
               <SelectItem value="Ganho">Ganho</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Mais Recentes</SelectItem>
-              <SelectItem value="score">Maior Score</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -240,9 +202,8 @@ export default function Leads() {
               <TableHead>Empresa</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Score</TableHead>
-              <TableHead className="print:hidden">Contato</TableHead>
+              <TableHead className="print:hidden">Ações Rápidas</TableHead>
               <TableHead>Valor</TableHead>
-              <TableHead>Data</TableHead>
               <TableHead className="w-[50px] print:hidden"></TableHead>
             </TableRow>
           </TableHeader>
@@ -265,7 +226,6 @@ export default function Leads() {
                     : score >= 40
                       ? 'bg-yellow-100 text-yellow-800'
                       : 'bg-red-100 text-red-800'
-
                 return (
                   <TableRow key={lead.id}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
@@ -288,14 +248,12 @@ export default function Leads() {
                     <TableCell className="print:hidden">
                       <div className="flex items-center gap-3">
                         {lead.phone ? (
-                          <a
-                            href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            onClick={() => setWaDialogLead(lead)}
                             className="text-green-600 hover:text-green-700 transition-colors"
                           >
                             <MessageCircle className="h-4 w-4" />
-                          </a>
+                          </button>
                         ) : (
                           <span className="w-4 h-4" />
                         )}
@@ -315,9 +273,6 @@ export default function Leads() {
                           }).format(lead.value)
                         : '-'}
                     </TableCell>
-                    <TableCell>
-                      {format(new Date(lead.createdAt), 'dd/MM/yyyy')}
-                    </TableCell>
                     <TableCell className="print:hidden">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -334,7 +289,7 @@ export default function Leads() {
                           </DropdownMenuItem>
                           {user?.role === 'Admin' && (
                             <DropdownMenuItem
-                              className="text-red-600 focus:bg-red-50 focus:text-red-600"
+                              className="text-red-600"
                               onClick={() => handleDelete(lead)}
                             >
                               <Trash className="mr-2 h-4 w-4" />
@@ -360,43 +315,33 @@ export default function Leads() {
           <DialogHeader>
             <DialogTitle>Enviar E-mail</DialogTitle>
             <DialogDescription>
-              Selecione um modelo de e-mail para enviar para{' '}
-              {emailDialogLead?.name}
+              Selecione um modelo para {emailDialogLead?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Modelo</label>
-              <Select
-                value={selectedTemplate}
-                onValueChange={setSelectedTemplate}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select
+              value={selectedTemplate}
+              onValueChange={setSelectedTemplate}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {selectedTemplateObj && (
               <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Assunto</label>
-                  <Input readOnly value={previewSubject} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Corpo</label>
-                  <Textarea
-                    className="min-h-[150px]"
-                    readOnly
-                    value={previewBody}
-                  />
-                </div>
+                <Input readOnly value={previewSubject} />
+                <Textarea
+                  className="min-h-[150px]"
+                  readOnly
+                  value={previewBody}
+                />
               </>
             )}
           </div>
@@ -408,7 +353,59 @@ export default function Leads() {
               <a
                 href={`mailto:${emailDialogLead?.email}?subject=${encodeURIComponent(previewSubject)}&body=${encodeURIComponent(previewBody)}`}
               >
-                Abrir Cliente de E-mail
+                Abrir E-mail
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!waDialogLead}
+        onOpenChange={(open) => !open && setWaDialogLead(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar WhatsApp</DialogTitle>
+            <DialogDescription>
+              Selecione um modelo para {waDialogLead?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select
+              value={selectedWaTemplate}
+              onValueChange={setSelectedWaTemplate}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                {waTemplates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedWaObj && (
+              <Textarea
+                className="min-h-[150px]"
+                readOnly
+                value={previewWaBody}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWaDialogLead(null)}>
+              Cancelar
+            </Button>
+            <Button disabled={!selectedWaObj} asChild>
+              <a
+                href={`https://wa.me/${waDialogLead?.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(previewWaBody)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Abrir WhatsApp Web
               </a>
             </Button>
           </DialogFooter>

@@ -4,7 +4,9 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useRef,
 } from 'react'
+import { sendBrowserNotification } from '@/lib/utils'
 
 export interface Task {
   id: string
@@ -45,8 +47,36 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     ]
   })
 
+  const notifiedTasks = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     localStorage.setItem('@neutrowaste:tasks', JSON.stringify(tasks))
+  }, [tasks])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date()
+      tasks.forEach((task) => {
+        if (task.completed || notifiedTasks.current.has(task.id)) return
+
+        try {
+          const taskDate = new Date(`${task.dueDate}T${task.time}:00`)
+          const diffMs = taskDate.getTime() - now.getTime()
+          const diffMins = diffMs / 1000 / 60
+
+          if (diffMins > 0 && diffMins <= 15) {
+            sendBrowserNotification('⏰ Lembrete de Tarefa', {
+              body: `A tarefa "${task.title}" está agendada para daqui a ${Math.ceil(diffMins)} minutos.`,
+            })
+            notifiedTasks.current.add(task.id)
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      })
+    }, 60000) // Check every minute
+
+    return () => clearInterval(interval)
   }, [tasks])
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {

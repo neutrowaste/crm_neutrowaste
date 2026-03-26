@@ -1,4 +1,4 @@
-import { Bell, Search, User } from 'lucide-react'
+import { Bell, Search, User, MessageSquare } from 'lucide-react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import {
@@ -12,15 +12,20 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLeads } from '@/contexts/LeadsContext'
+import { useChat } from '@/contexts/ChatContext'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Link } from 'react-router-dom'
 
 export function Header() {
   const { user, logout } = useAuth()
   const { notifications, markNotificationsAsRead } = useLeads()
+  const { getUnreadCount } = useChat()
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const systemUnreadCount = notifications.filter((n) => !n.read).length
   const recentNotifications = notifications.slice(0, 5)
+
+  const chatUnreadCount = user ? getUnreadCount(user.id) : 0
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-white/80 backdrop-blur-md px-4 sm:px-6 md:px-8 pl-16 md:pl-8">
@@ -35,6 +40,15 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
+        <Button variant="ghost" size="icon" className="relative" asChild>
+          <Link to="/chat">
+            <MessageSquare className="h-5 w-5" />
+            {chatUnreadCount > 0 && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-600" />
+            )}
+          </Link>
+        </Button>
+
         <Popover
           onOpenChange={(open) => {
             if (open) markNotificationsAsRead()
@@ -43,13 +57,13 @@ export function Header() {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
+              {systemUnreadCount > 0 && (
                 <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600" />
               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80">
-            <h4 className="font-semibold mb-3">Notificações</h4>
+            <h4 className="font-semibold mb-3">Notificações do Sistema</h4>
             <div className="space-y-3">
               {recentNotifications.length === 0 ? (
                 <p className="text-sm text-muted-foreground">

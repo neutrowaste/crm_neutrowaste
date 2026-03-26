@@ -33,3 +33,13 @@ export function calculateLeadScore(lead: Lead): number {
 
   return Math.min(score, 100)
 }
+
+export function sendBrowserNotification(
+  title: string,
+  options?: NotificationOptions,
+) {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'granted') {
+    new Notification(title, options)
+  }
+}

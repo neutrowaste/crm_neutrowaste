@@ -1,8 +1,15 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
+import { useEffect } from 'react'
 
 export function Layout() {
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
   return (
     <div className="flex min-h-screen bg-gray-50/50 w-full relative">
       <Sidebar />
