@@ -104,7 +104,9 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
 
           setContracts(newContracts)
           prevContractsRef.current = newContracts
-        } catch (err) {}
+        } catch (err) {
+          // Ignore JSON parse errors
+        }
       }
     }
     window.addEventListener('storage', handleStorage)
