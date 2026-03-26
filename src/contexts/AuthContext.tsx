@@ -11,13 +11,14 @@ export interface User {
   name: string
   email: string
   role: 'Admin' | 'Seller'
+  isOnline?: boolean
 }
 
 interface AuthContextType {
   user: User | null
   allUsers: User[]
   isLoading: boolean
-  login: (email: string, pass: string) => Promise<void>
+  login: (email: string, pass: string) => Promise<User>
   register: (
     name: string,
     email: string,
@@ -25,6 +26,7 @@ interface AuthContextType {
     role: 'Admin' | 'Seller',
   ) => Promise<void>
   logout: () => void
+  finalizeLogin: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,12 +37,14 @@ const defaultUsers: User[] = [
     name: 'Administrador',
     email: 'admin@neutrowaste.com',
     role: 'Admin',
+    isOnline: true,
   },
   {
     id: 'seller-1',
     name: 'Vendedor',
     email: 'vendedor@neutrowaste.com',
     role: 'Seller',
+    isOnline: false,
   },
 ]
 
@@ -53,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUser = localStorage.getItem('@neutrowaste:user')
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
+        const u = JSON.parse(storedUser)
+        setUser({ ...u, isOnline: true })
       } catch (e) {
         console.error(e)
       }
@@ -62,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUsers = localStorage.getItem('@neutrowaste:users')
     let parsedUsers = storedUsers ? JSON.parse(storedUsers) : []
 
-    // Ensure default users exist in allUsers list
     const defaultsToAdd = defaultUsers.filter(
       (du) => !parsedUsers.some((pu: any) => pu.email === du.email),
     )
@@ -77,28 +81,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: u.name,
         email: u.email,
         role: u.role,
+        isOnline:
+          u.id === 'admin-1' || u.id === 'seller-1'
+            ? u.isOnline
+            : Math.random() > 0.5,
       })),
     )
     setIsLoading(false)
+
+    const handleBeforeUnload = () => {
+      // Logic to set offline could go here for backend sync
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string): Promise<User> => {
     const usersStr = localStorage.getItem('@neutrowaste:users')
     const users = usersStr ? JSON.parse(usersStr) : []
 
-    // Default mock users for testing
     if (email === 'admin@neutrowaste.com' && pass === 'admin123') {
-      const adminUser = defaultUsers[0]
-      setUser(adminUser)
-      localStorage.setItem('@neutrowaste:user', JSON.stringify(adminUser))
-      return
+      return defaultUsers[0]
     }
 
     if (email === 'vendedor@neutrowaste.com' && pass === 'vendedor123') {
-      const sellerUser = defaultUsers[1]
-      setUser(sellerUser)
-      localStorage.setItem('@neutrowaste:user', JSON.stringify(sellerUser))
-      return
+      return defaultUsers[1]
     }
 
     const found = users.find(
@@ -109,14 +116,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('E-mail ou senha inválidos.')
     }
 
-    const loggedUser: User = {
+    return {
       id: found.id,
       name: found.name,
       email: found.email,
       role: found.role || 'Seller',
+      isOnline: true,
     }
-    setUser(loggedUser)
-    localStorage.setItem('@neutrowaste:user', JSON.stringify(loggedUser))
+  }
+
+  const finalizeLogin = (loggedInUser: User) => {
+    const userWithOnline = { ...loggedInUser, isOnline: true }
+    setUser(userWithOnline)
+    localStorage.setItem('@neutrowaste:user', JSON.stringify(userWithOnline))
+    setAllUsers((prev) =>
+      prev.map((u) =>
+        u.id === userWithOnline.id ? { ...u, isOnline: true } : u,
+      ),
+    )
   }
 
   const register = async (
@@ -148,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: u.name,
         email: u.email,
         role: u.role,
+        isOnline: u.id === newUser.id ? true : false,
       })),
     )
 
@@ -156,19 +174,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: newUser.name,
       email: newUser.email,
       role: newUser.role as 'Admin' | 'Seller',
+      isOnline: true,
     }
-    setUser(loggedUser)
-    localStorage.setItem('@neutrowaste:user', JSON.stringify(loggedUser))
+    finalizeLogin(loggedUser)
   }
 
   const logout = () => {
+    if (user) {
+      setAllUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isOnline: false } : u)),
+      )
+    }
     setUser(null)
     localStorage.removeItem('@neutrowaste:user')
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, allUsers, isLoading, login, register, logout }}
+      value={{
+        user,
+        allUsers,
+        isLoading,
+        login,
+        register,
+        logout,
+        finalizeLogin,
+      }}
     >
       {children}
     </AuthContext.Provider>

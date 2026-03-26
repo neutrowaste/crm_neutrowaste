@@ -74,7 +74,7 @@ export function Sidebar() {
 
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col print:hidden',
+          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-background transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col print:hidden',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -83,7 +83,7 @@ export function Sidebar() {
             <img
               src={logoImg}
               alt="Neutrowaste Logo"
-              className="h-8 object-contain"
+              className="h-8 object-contain dark:brightness-200 dark:contrast-200"
             />
           </Link>
         </div>
@@ -106,14 +106,16 @@ export function Sidebar() {
                   'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-gray-700 hover:bg-gray-100',
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
                 <div className="flex items-center gap-3">
                   <Icon
                     className={cn(
                       'h-4 w-4',
-                      isActive ? 'text-primary-foreground' : 'text-gray-500',
+                      isActive
+                        ? 'text-primary-foreground'
+                        : 'text-muted-foreground',
                     )}
                   />
                   {item.name}

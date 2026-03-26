@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useLeads } from '@/contexts/LeadsContext'
+import { addDays } from 'date-fns'
 
 export type ContractStatus =
   | 'Draft'
@@ -25,6 +26,7 @@ export interface Contract {
   createdAt: string
   updatedAt: string
   fileUrl?: string
+  expiresAt?: string
 }
 
 interface ContractsContextType {
@@ -47,6 +49,7 @@ const mockContracts: Contract[] = [
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     fileUrl: '#',
+    expiresAt: addDays(new Date(), 5).toISOString(),
   },
   {
     id: 'c2',
@@ -58,6 +61,7 @@ const mockContracts: Contract[] = [
     createdAt: new Date(Date.now() - 172800000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     fileUrl: '#',
+    expiresAt: addDays(new Date(), 365).toISOString(),
   },
 ]
 
@@ -122,6 +126,7 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
       id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      expiresAt: addDays(new Date(), 30).toISOString(), // Default expiration
     }
     setContracts((prev) => [contract, ...prev])
     return id

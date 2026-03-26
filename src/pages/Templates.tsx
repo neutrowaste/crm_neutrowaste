@@ -73,11 +73,11 @@ export default function Templates() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Modelos de Mensagens
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Biblioteca de Modelos
           </h1>
           <p className="text-muted-foreground">
-            Gerencie templates para E-mail e WhatsApp automáticos.
+            Crie templates para E-mail (Follow-up) e WhatsApp.
           </p>
         </div>
         <Button onClick={() => openDialog()}>
@@ -88,7 +88,7 @@ export default function Templates() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-[400px] grid-cols-2">
           <TabsTrigger value="email">
-            <Mail className="w-4 h-4 mr-2" /> E-mail
+            <Mail className="w-4 h-4 mr-2" /> E-mail (Follow-up)
           </TabsTrigger>
           <TabsTrigger value="whatsapp">
             <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
@@ -100,56 +100,73 @@ export default function Templates() {
             <CardHeader>
               <CardTitle>Modelos de E-mail</CardTitle>
               <CardDescription>
-                Variáveis:{' '}
-                {'{{company_name}}, {{contact_name}}, {{lead_value}}'}
+                Variáveis disponíveis:{' '}
+                <span className="font-mono text-xs bg-muted px-1 rounded">
+                  {'{{company_name}}'}
+                </span>
+                ,{' '}
+                <span className="font-mono text-xs bg-muted px-1 rounded">
+                  {'{{contact_name}}'}
+                </span>
+                ,{' '}
+                <span className="font-mono text-xs bg-muted px-1 rounded">
+                  {'{{lead_value}}'}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Assunto</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {templates.length === 0 ? (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4">
-                        Nenhum modelo criado.
-                      </TableCell>
+                      <TableHead>Nome do Modelo</TableHead>
+                      <TableHead>Assunto</TableHead>
+                      <TableHead className="w-[100px] text-right">
+                        Ações
+                      </TableHead>
                     </TableRow>
-                  ) : (
-                    templates.map((tpl) => (
-                      <TableRow key={tpl.id}>
-                        <TableCell className="font-medium">
-                          {tpl.name}
-                        </TableCell>
-                        <TableCell>{tpl.subject}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDialog(tpl)}
-                            >
-                              <Edit className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteTemplate(tpl.id)}
-                            >
-                              <Trash className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {templates.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          Nenhum modelo de e-mail criado.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      templates.map((tpl) => (
+                        <TableRow key={tpl.id}>
+                          <TableCell className="font-medium">
+                            {tpl.name}
+                          </TableCell>
+                          <TableCell>{tpl.subject}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openDialog(tpl)}
+                              >
+                                <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteTemplate(tpl.id)}
+                              >
+                                <Trash className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -159,57 +176,71 @@ export default function Templates() {
             <CardHeader>
               <CardTitle>Modelos de WhatsApp</CardTitle>
               <CardDescription>
-                Variáveis: {'{{company_name}}, {{lead_name}}'}
+                Variáveis disponíveis:{' '}
+                <span className="font-mono text-xs bg-muted px-1 rounded">
+                  {'{{company_name}}'}
+                </span>
+                ,{' '}
+                <span className="font-mono text-xs bg-muted px-1 rounded">
+                  {'{{lead_name}}'}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Prévia da Mensagem</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {waTemplates.length === 0 ? (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-4">
-                        Nenhum modelo criado.
-                      </TableCell>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Prévia da Mensagem</TableHead>
+                      <TableHead className="w-[100px] text-right">
+                        Ações
+                      </TableHead>
                     </TableRow>
-                  ) : (
-                    waTemplates.map((tpl) => (
-                      <TableRow key={tpl.id}>
-                        <TableCell className="font-medium">
-                          {tpl.name}
-                        </TableCell>
-                        <TableCell className="truncate max-w-md">
-                          {tpl.text}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDialog(tpl)}
-                            >
-                              <Edit className="h-4 w-4 text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteWaTemplate(tpl.id)}
-                            >
-                              <Trash className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {waTemplates.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          Nenhum modelo de WhatsApp criado.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      waTemplates.map((tpl) => (
+                        <TableRow key={tpl.id}>
+                          <TableCell className="font-medium">
+                            {tpl.name}
+                          </TableCell>
+                          <TableCell className="truncate max-w-md">
+                            {tpl.text}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openDialog(tpl)}
+                              >
+                                <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteWaTemplate(tpl.id)}
+                              >
+                                <Trash className="h-4 w-4 text-red-600 dark:text-red-400" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -222,13 +253,13 @@ export default function Templates() {
               {editingId ? 'Editar Modelo' : 'Novo Modelo'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome do Modelo</label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Apresentação"
+                placeholder="Ex: Apresentação Inicial"
               />
             </div>
             {activeTab === 'email' && (
@@ -247,6 +278,7 @@ export default function Templates() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 className="min-h-[150px]"
+                placeholder={`Olá {{contact_name}}...`}
               />
             </div>
           </div>
@@ -258,7 +290,7 @@ export default function Templates() {
               onClick={handleSave}
               disabled={!name || !body || (activeTab === 'email' && !subject)}
             >
-              Salvar
+              Salvar Modelo
             </Button>
           </DialogFooter>
         </DialogContent>

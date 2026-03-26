@@ -16,6 +16,8 @@ export interface ChatMessage {
   leadId?: string
   readBy: string[]
   receiverId?: string
+  fileUrl?: string
+  fileName?: string
 }
 
 interface ChatContextType {
@@ -48,6 +50,40 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('@neutrowaste:chat', JSON.stringify(messages))
   }, [messages])
 
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )()
+      const oscillator = audioCtx.createOscillator()
+      const gainNode = audioCtx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioCtx.destination)
+
+      oscillator.type = 'sine'
+      oscillator.frequency.value = 600
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime)
+
+      oscillator.start()
+      oscillator.stop(audioCtx.currentTime + 0.1)
+
+      setTimeout(() => {
+        const osc2 = audioCtx.createOscillator()
+        const gain2 = audioCtx.createGain()
+        osc2.connect(gain2)
+        gain2.connect(audioCtx.destination)
+        osc2.type = 'sine'
+        osc2.frequency.value = 800
+        gain2.gain.setValueAtTime(0.05, audioCtx.currentTime)
+        osc2.start()
+        osc2.stop(audioCtx.currentTime + 0.15)
+      }, 150)
+    } catch (e) {
+      console.error("Audio API not supported or user hasn't interacted yet", e)
+    }
+  }
+
   const sendMessage = (
     msg: Omit<ChatMessage, 'id' | 'timestamp' | 'readBy'>,
   ) => {
@@ -59,11 +95,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     setMessages((prev) => [...prev, newMsg])
 
-    // Simulate push notification for others
     if (!msg.receiverId || msg.receiverId !== msg.userId) {
       sendBrowserNotification(`Nova mensagem de ${msg.userName}`, {
-        body: msg.text,
+        body: msg.fileUrl ? 'Enviou um arquivo' : msg.text,
       })
+
+      if (document.hidden) {
+        playNotificationSound()
+      }
     }
   }
 
@@ -99,7 +138,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return m.userId === channelId || m.receiverId === channelId
       }
 
-      // If no channel specified, just count messages directed to me or general
       return !m.receiverId || m.receiverId === userId
     }).length
   }
