@@ -114,7 +114,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         osc2.start()
         osc2.stop(audioCtx.currentTime + 0.15)
       }, 150)
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
   }
 
   const sendMessage = async (

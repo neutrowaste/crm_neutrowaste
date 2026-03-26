@@ -69,7 +69,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
             })
             notifiedTasks.current.add(task.id)
           }
-        } catch (e) {}
+        } catch (e) {
+          // ignore
+        }
       })
     }, 60000)
 

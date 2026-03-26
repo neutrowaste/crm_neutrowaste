@@ -1,5 +1,5 @@
 -- Handle GoTrue auth engine bug with empty strings
-DO $
+DO $$
 BEGIN
   UPDATE auth.users
   SET
@@ -17,7 +17,7 @@ BEGIN
     OR email_change_token_current IS NULL
     OR phone_change IS NULL OR phone_change_token IS NULL
     OR reauthentication_token IS NULL;
-END $;
+END $$;
 
 -- Profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -155,7 +155,7 @@ CREATE POLICY "Allow authenticated chat_messages" ON public.chat_messages FOR AL
 
 -- Trigger for profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, email, role)
   VALUES (
@@ -166,7 +166,7 @@ BEGIN
   ) ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -174,7 +174,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Seed Users
-DO $
+DO $$
 DECLARE
   hugo_uid uuid := gen_random_uuid();
   admin_uid uuid := gen_random_uuid();
@@ -224,5 +224,4 @@ BEGIN
     VALUES (admin_uid, 'Admin Neutrowaste', 'admin@neutrowaste.com', 'Admin', false)
     ON CONFLICT (id) DO NOTHING;
   END IF;
-END $;
-
+END $$;
