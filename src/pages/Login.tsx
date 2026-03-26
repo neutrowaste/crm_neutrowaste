@@ -107,7 +107,7 @@ export default function Login() {
                 <FormField
                   control={form.control}
                   name="email"
-                  render={({ field: { ref, ...fieldProps } }) => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
                       <FormControl>
@@ -115,7 +115,7 @@ export default function Login() {
                           placeholder="voce@exemplo.com"
                           type="email"
                           disabled={isLoading}
-                          {...fieldProps}
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -125,7 +125,7 @@ export default function Login() {
                 <FormField
                   control={form.control}
                   name="password"
-                  render={({ field: { ref, ...fieldProps } }) => (
+                  render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between">
                         <FormLabel>Senha</FormLabel>
@@ -141,7 +141,7 @@ export default function Login() {
                           placeholder="••••••••"
                           type="password"
                           disabled={isLoading}
-                          {...fieldProps}
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
