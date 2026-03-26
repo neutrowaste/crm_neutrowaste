@@ -137,37 +137,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const login = async (email: string, pass: string): Promise<void> => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: pass,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
+      })
 
-    if (error) {
-      const msg = error.message.toLowerCase()
+      if (error) {
+        throw error
+      }
+
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profile && profile.status !== 'active') {
+          await supabase.auth.signOut()
+          throw new Error(
+            'Sua conta está pendente de aprovação pelo administrador.',
+          )
+        }
+      }
+    } catch (error: any) {
+      const msg = error.message?.toLowerCase() || ''
       if (msg.includes('email not confirmed')) {
         throw new Error(
           'E-mail não confirmado. Verifique sua caixa de entrada ou contate o administrador.',
         )
       }
-      if (msg.includes('invalid login credentials')) {
+      if (
+        msg.includes('invalid login credentials') ||
+        msg.includes('invalid credentials')
+      ) {
         throw new Error('E-mail ou senha inválidos.')
       }
-      throw new Error(error.message)
-    }
-
-    if (data.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', data.user.id)
-        .single()
-
-      if (profile && profile.status !== 'active') {
-        await supabase.auth.signOut()
-        throw new Error(
-          'Sua conta está pendente de aprovação pelo administrador.',
-        )
-      }
+      throw error
     }
   }
 

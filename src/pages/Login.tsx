@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { Loader2, Info } from 'lucide-react'
+import { Loader2, Info, AlertCircle } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -38,6 +38,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
+  const [serverErrorMsg, setServerErrorMsg] = useState<string | null>(null)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -107,6 +108,7 @@ export default function Login() {
     }
 
     setIsLoading(true)
+    setServerErrorMsg(null)
 
     try {
       await login(data.email, data.password)
@@ -128,6 +130,12 @@ export default function Login() {
           title: 'Acesso Negado',
           description: error.message,
         })
+      } else if (msg.includes('pendente')) {
+        toast({
+          variant: 'destructive',
+          title: 'Conta em Análise',
+          description: error.message,
+        })
       } else if (
         msg.includes('smtp') ||
         msg.includes('sender') ||
@@ -139,10 +147,12 @@ export default function Login() {
           description: `Falha reportada pelo servidor: ${error.message}`,
         })
       } else {
+        // Erros de banco ou infraestrutura
+        setServerErrorMsg(error.message)
         toast({
           variant: 'destructive',
-          title: 'Erro ao entrar',
-          description: `Falha reportada pelo servidor: ${error.message}`,
+          title: 'Falha de Conexão com Servidor',
+          description: `Tivemos um problema técnico. Atualize a página e tente novamente.`,
         })
       }
     } finally {
@@ -192,6 +202,18 @@ export default function Login() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-6"
                 >
+                  {serverErrorMsg && (
+                    <div className="rounded-md bg-destructive/10 p-3 border border-destructive/20 text-sm flex gap-2 text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Erro de Servidor:</strong>
+                        <p className="opacity-90 text-xs mt-1">
+                          {serverErrorMsg}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="email"
