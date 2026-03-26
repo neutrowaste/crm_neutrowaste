@@ -11,6 +11,7 @@ import {
   FileText,
   MessageSquare,
   FileArchive,
+  Kanban,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
@@ -21,6 +22,7 @@ import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 const getNavigation = (role: string) => {
   const baseNav = [
     { name: 'Painel', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Kanban', href: '/kanban', icon: Kanban },
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Agenda', href: '/calendar', icon: Calendar },
     { name: 'Chat da Equipe', href: '/chat', icon: MessageSquare },

@@ -13,11 +13,26 @@ import {
 import { useLeads } from '@/contexts/LeadsContext'
 import { useMemo } from 'react'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { subDays } from 'date-fns'
 
-export function SalesFunnel() {
+export function SalesFunnel({
+  timeFilter = 'monthly',
+}: {
+  timeFilter?: string
+}) {
   const { leads } = useLeads()
 
   const data = useMemo(() => {
+    let days = 30
+    if (timeFilter === 'weekly') days = 7
+    if (timeFilter === 'quarterly') days = 90
+
+    const startDate = subDays(new Date(), days)
+
+    const filteredLeads = leads.filter(
+      (l) => new Date(l.updatedAt) >= startDate,
+    )
+
     const stages = [
       { id: 'Novo', label: 'Novo' },
       { id: 'Contatado', label: 'Contatado' },
@@ -28,9 +43,9 @@ export function SalesFunnel() {
 
     return stages.map((stage) => ({
       name: stage.label,
-      value: leads.filter((l) => l.status === stage.id).length,
+      value: filteredLeads.filter((l) => l.status === stage.id).length,
     }))
-  }, [leads])
+  }, [leads, timeFilter])
 
   return (
     <Card>

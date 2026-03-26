@@ -21,6 +21,7 @@ export interface Lead {
   assignedTo?: string
   createdAt: string
   updatedAt: string
+  lastFollowUp?: string
 }
 
 export interface Notification {

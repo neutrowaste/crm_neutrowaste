@@ -2,68 +2,76 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLeads } from '@/contexts/LeadsContext'
 import { useContracts } from '@/contexts/ContractsContext'
 import { FileText, Percent, Clock, DollarSign } from 'lucide-react'
+import { useMemo } from 'react'
+import { subDays } from 'date-fns'
 
-export function Metrics() {
+export function Metrics({ timeFilter = 'monthly' }: { timeFilter?: string }) {
   const { leads } = useLeads()
   const { contracts } = useContracts()
 
-  const totalContracts = contracts.length
+  const { totalContracts, conversionRate, pendingSignatures, revenue } =
+    useMemo(() => {
+      let days = 30
+      if (timeFilter === 'weekly') days = 7
+      if (timeFilter === 'quarterly') days = 90
 
-  const signedContracts = contracts.filter((c) => c.status === 'Signed').length
+      const startDate = subDays(new Date(), days)
 
-  const conversionRate =
-    totalContracts > 0
-      ? Math.round((signedContracts / totalContracts) * 100)
-      : 0
-
-  const pendingSignatures = contracts.filter(
-    (c) => c.status === 'Sent for Signature',
-  ).length
-
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
-
-  const monthlyRevenue = contracts
-    .filter((c) => {
-      const d = new Date(c.updatedAt)
-      return (
-        c.status === 'Signed' &&
-        d.getMonth() === currentMonth &&
-        d.getFullYear() === currentYear
+      const filteredContracts = contracts.filter(
+        (c) => new Date(c.updatedAt) >= startDate,
       )
-    })
-    .reduce((sum, c) => {
-      const lead = leads.find((l) => l.id === c.leadId)
-      return sum + (lead?.value || 0)
-    }, 0)
+
+      const total = filteredContracts.length
+      const signed = filteredContracts.filter(
+        (c) => c.status === 'Signed',
+      ).length
+      const rate = total > 0 ? Math.round((signed / total) * 100) : 0
+      const pending = filteredContracts.filter(
+        (c) => c.status === 'Sent for Signature',
+      ).length
+
+      const rev = filteredContracts
+        .filter((c) => c.status === 'Signed')
+        .reduce((sum, c) => {
+          const lead = leads.find((l) => l.id === c.leadId)
+          return sum + (lead?.value || 0)
+        }, 0)
+
+      return {
+        totalContracts: total,
+        conversionRate: rate,
+        pendingSignatures: pending,
+        revenue: rev,
+      }
+    }, [contracts, leads, timeFilter])
 
   const metrics = [
     {
       title: 'Total de Contratos',
       value: totalContracts.toString(),
       icon: FileText,
-      trend: 'Gerenciados no sistema',
+      trend: 'No período selecionado',
     },
     {
       title: 'Taxa de Conversão',
       value: `${conversionRate}%`,
       icon: Percent,
-      trend: 'Contratos assinados vs total',
+      trend: 'Contratos assinados',
     },
     {
       title: 'Assinaturas Pendentes',
       value: pendingSignatures.toString(),
       icon: Clock,
-      trend: 'Aguardando ação do cliente',
+      trend: 'Aguardando clientes',
     },
     {
-      title: 'Receita Mensal',
+      title: 'Receita',
       value: new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL',
-      }).format(monthlyRevenue),
+      }).format(revenue),
       icon: DollarSign,
-      trend: 'Contratos assinados este mês',
+      trend: 'Contratos assinados',
     },
   ]
 

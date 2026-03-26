@@ -5,6 +5,7 @@ import Leads from '@/pages/Leads'
 import NewLead from '@/pages/NewLead'
 import EditLead from '@/pages/EditLead'
 import CalendarPage from '@/pages/Calendar'
+import KanbanPage from '@/pages/Kanban'
 import LogsPage from '@/pages/Logs'
 import TemplatesPage from '@/pages/Templates'
 import PlaceholderPage from '@/pages/PlaceholderPage'
@@ -70,6 +71,7 @@ function App() {
                           <Route path="leads/new" element={<NewLead />} />
                           <Route path="leads/edit/:id" element={<EditLead />} />
                           <Route path="calendar" element={<CalendarPage />} />
+                          <Route path="kanban" element={<KanbanPage />} />
                           <Route path="chat" element={<ChatPage />} />
                           <Route path="logs" element={<LogsPage />} />
                           <Route path="templates" element={<TemplatesPage />} />

@@ -15,12 +15,20 @@ import {
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { format, subDays, isSameDay } from 'date-fns'
 
-export function ContractsChart() {
+export function ContractsChart({
+  timeFilter = 'monthly',
+}: {
+  timeFilter?: string
+}) {
   const { contracts } = useContracts()
 
   const data = useMemo(() => {
+    let numDays = 30
+    if (timeFilter === 'weekly') numDays = 7
+    if (timeFilter === 'quarterly') numDays = 90
+
     const days = []
-    for (let i = 29; i >= 0; i--) {
+    for (let i = numDays - 1; i >= 0; i--) {
       days.push(subDays(new Date(), i))
     }
 
@@ -37,13 +45,13 @@ export function ContractsChart() {
         value: signedThatDay,
       }
     })
-  }, [contracts])
+  }, [contracts, timeFilter])
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Assinaturas de Contratos</CardTitle>
-        <CardDescription>Tendência diária nos últimos 30 dias</CardDescription>
+        <CardDescription>Tendência no período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
