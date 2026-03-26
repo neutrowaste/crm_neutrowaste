@@ -17,6 +17,7 @@ export interface User {
   name: string
   email: string
   role: 'Admin' | 'Seller'
+  status?: string
   isOnline?: boolean
 }
 
@@ -26,12 +27,7 @@ interface AuthContextType {
   isLoading: boolean
   loginStep1: (email: string, pass: string) => Promise<void>
   loginStep2: (email: string, code: string) => Promise<User>
-  register: (
-    name: string,
-    email: string,
-    pass: string,
-    role: 'Admin' | 'Seller',
-  ) => Promise<void>
+  register: (name: string, email: string, pass: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -73,11 +69,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single()
         .then(({ data: profile }) => {
           if (profile) {
+            // Verifica status do usuário antes de liberar o acesso
+            if (profile.status !== 'active') {
+              supabase.auth.signOut()
+              setUser(null)
+              setIsLoading(false)
+              return
+            }
+
             setUser({
               id: profile.id,
               name: profile.name,
               email: profile.email,
               role: profile.role as 'Admin' | 'Seller',
+              status: profile.status,
               isOnline: profile.is_online,
             })
             supabase
@@ -101,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: p.name,
             email: p.email,
             role: p.role as 'Admin' | 'Seller',
+            status: p.status,
             isOnline: p.is_online,
           })),
         )
@@ -142,13 +148,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    const { error } = await tempClient.auth.signInWithPassword({
+    const { data, error } = await tempClient.auth.signInWithPassword({
       email,
       password: pass,
     })
     if (error) throw new Error('E-mail ou senha inválidos.')
 
-    // Se a senha estiver correta, dispara o envio do OTP (E-mail) usando o cliente principal
+    // Verifica se o usuário está ativo antes de disparar o OTP
+    if (data.user) {
+      const { data: profile } = await tempClient
+        .from('profiles')
+        .select('status')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profile && profile.status !== 'active') {
+        throw new Error(
+          'Sua conta está pendente de aprovação pelo administrador.',
+        )
+      }
+    }
+
+    // Se a senha estiver correta e ativo, dispara o envio do OTP (E-mail) usando o cliente principal
     const { error: otpError } = await supabase.auth.signInWithOtp({ email })
     if (otpError) throw new Error('Erro ao enviar código de verificação.')
   }
@@ -171,11 +192,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (profError || !profile) throw new Error('Perfil não encontrado.')
 
+    if (profile.status !== 'active') {
+      await supabase.auth.signOut()
+      throw new Error(
+        'Sua conta está pendente de aprovação pelo administrador.',
+      )
+    }
+
     const loggedInUser: User = {
       id: profile.id,
       name: profile.name,
       email: profile.email,
       role: profile.role as 'Admin' | 'Seller',
+      status: profile.status,
       isOnline: true,
     }
 
@@ -188,36 +217,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return loggedInUser
   }
 
-  const register = async (
-    name: string,
-    email: string,
-    pass: string,
-    role: 'Admin' | 'Seller',
-  ) => {
+  const register = async (name: string, email: string, pass: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: {
         data: {
           name,
-          role,
         },
       },
     })
     if (error) throw new Error(error.message)
-    if (data.user) {
-      setUser({
-        id: data.user.id,
-        name,
-        email,
-        role,
-        isOnline: true,
-      })
-      await supabase
-        .from('profiles')
-        .update({ is_online: true })
-        .eq('id', data.user.id)
+
+    // Novo registro entra como 'pending'. Desloga instantaneamente para evitar sessão ativa.
+    if (data.session) {
+      await supabase.auth.signOut()
     }
+
+    // Dispara o email de boas vindas
+    supabase.functions
+      .invoke('send-welcome-email', {
+        body: { email, name },
+      })
+      .catch(console.error)
   }
 
   const logout = async () => {

@@ -15,6 +15,22 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   User,
   Building2,
   Palette,
@@ -24,6 +40,7 @@ import {
   Moon,
   Sun,
   LogOut,
+  Users,
 } from 'lucide-react'
 
 export default function Settings() {
@@ -45,11 +62,31 @@ export default function Settings() {
   // Security Tab State
   const [isSendingReset, setIsSendingReset] = useState(false)
 
+  // Users Tab State
+  const [users, setUsers] = useState<any[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+
   useEffect(() => {
     if (user) {
       setName(user.name)
     }
   }, [user])
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      if (data) setUsers(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }
 
   useEffect(() => {
     if (user?.role === 'Admin') {
@@ -74,6 +111,7 @@ export default function Settings() {
         }
       }
       loadSettings()
+      loadUsers()
     }
   }, [user])
 
@@ -154,8 +192,44 @@ export default function Settings() {
     }
   }
 
+  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', userId)
+      if (error) throw error
+      toast({ title: 'Status do usuário atualizado com sucesso' })
+      loadUsers()
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar status',
+        description: error.message,
+      })
+    }
+  }
+
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId)
+      if (error) throw error
+      toast({ title: 'Perfil do usuário atualizado com sucesso' })
+      loadUsers()
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar perfil',
+        description: error.message,
+      })
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Configurações Gerais
@@ -183,12 +257,20 @@ export default function Settings() {
             <Palette className="w-4 h-4 mr-3" /> Aparência
           </TabsTrigger>
           {user?.role === 'Admin' && (
-            <TabsTrigger
-              value="company"
-              className="w-full justify-start px-4 py-2.5 h-11 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted transition-colors rounded-md"
-            >
-              <Building2 className="w-4 h-4 mr-3" /> Dados da Empresa
-            </TabsTrigger>
+            <>
+              <TabsTrigger
+                value="users"
+                className="w-full justify-start px-4 py-2.5 h-11 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted transition-colors rounded-md"
+              >
+                <Users className="w-4 h-4 mr-3" /> Gestão de Usuários
+              </TabsTrigger>
+              <TabsTrigger
+                value="company"
+                className="w-full justify-start px-4 py-2.5 h-11 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted transition-colors rounded-md"
+              >
+                <Building2 className="w-4 h-4 mr-3" /> Dados da Empresa
+              </TabsTrigger>
+            </>
           )}
           <TabsTrigger
             value="security"
@@ -293,6 +375,123 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {user?.role === 'Admin' && (
+            <TabsContent value="users" className="mt-0 outline-none">
+              <Card className="border-none shadow-none bg-transparent">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Gestão de Usuários</CardTitle>
+                  <CardDescription>
+                    Aprove solicitações de acesso e gerencie as permissões da
+                    equipe.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {isLoadingUsers ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="border rounded-md bg-card">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>E-mail</TableHead>
+                            <TableHead>Perfil</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Ação</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((u) => (
+                            <TableRow key={u.id}>
+                              <TableCell className="font-medium">
+                                {u.name}
+                              </TableCell>
+                              <TableCell>{u.email}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={u.role}
+                                  onValueChange={(val) =>
+                                    handleUpdateUserRole(u.id, val)
+                                  }
+                                  disabled={u.id === user.id} // Impede alterar o próprio cargo facilmente
+                                >
+                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Admin">
+                                      Administrador
+                                    </SelectItem>
+                                    <SelectItem value="Seller">
+                                      Vendedor
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    u.status === 'active'
+                                      ? 'success'
+                                      : u.status === 'pending'
+                                        ? 'warning'
+                                        : 'destructive'
+                                  }
+                                >
+                                  {u.status === 'active'
+                                    ? 'Ativo'
+                                    : u.status === 'pending'
+                                      ? 'Pendente'
+                                      : 'Rejeitado'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Select
+                                  value={u.status}
+                                  onValueChange={(val) =>
+                                    handleUpdateUserStatus(u.id, val)
+                                  }
+                                  disabled={u.id === user.id} // Impede bloquear a si mesmo
+                                >
+                                  <SelectTrigger className="w-36 h-8 text-xs ml-auto">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="active">
+                                      Aprovar Acesso
+                                    </SelectItem>
+                                    <SelectItem value="pending">
+                                      Pendente
+                                    </SelectItem>
+                                    <SelectItem value="rejected">
+                                      Bloquear Acesso
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {users.length === 0 && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={5}
+                                className="text-center py-6 text-muted-foreground"
+                              >
+                                Nenhum usuário encontrado.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {user?.role === 'Admin' && (
             <TabsContent value="company" className="mt-0 outline-none">
