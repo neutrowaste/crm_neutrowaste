@@ -1,20 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
-export type LeadStatus =
-  | 'Novo'
-  | 'Qualificado'
-  | 'Em Negociação'
-  | 'Perdido'
-  | 'Ganho'
+export type LeadStatus = 'Prospect' | 'Qualified' | 'Proposal' | 'Closed'
 
 export interface Lead {
   id: string
   company: string
+  industry: string
   contact: string
   email: string
   phone: string
-  segment: string
-  size: string
   source: string
   status: LeadStatus
   createdAt: Date
@@ -23,7 +17,8 @@ export interface Lead {
 interface LeadsContextType {
   leads: Lead[]
   addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => void
-  updateLeadStatus: (id: string, status: LeadStatus) => void
+  updateLead: (id: string, lead: Partial<Lead>) => void
+  deleteLead: (id: string) => void
 }
 
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
@@ -31,39 +26,36 @@ const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
 const initialLeads: Lead[] = [
   {
     id: '1',
-    company: 'TechSolutions Ltd',
-    contact: 'Roberto Silva',
-    email: 'roberto@techsolutions.com',
-    phone: '(11) 99999-1234',
-    segment: 'Tecnologia',
-    size: '51-200',
-    source: 'LinkedIn',
-    status: 'Novo',
-    createdAt: new Date('2023-10-01'),
+    company: 'Green Future Mfg',
+    industry: 'Manufacturing',
+    contact: 'Robert Plant',
+    email: 'robert@greenfuture.com',
+    phone: '(555) 123-4567',
+    source: 'Website',
+    status: 'Prospect',
+    createdAt: new Date(Date.now() - 86400000 * 2),
   },
   {
     id: '2',
-    company: 'Varejo Express',
-    contact: 'Ana Souza',
-    email: 'ana@varejoexpress.com.br',
-    phone: '(21) 98888-5678',
-    segment: 'Varejo',
-    size: '201+',
-    source: 'Indicação',
-    status: 'Qualificado',
-    createdAt: new Date('2023-10-03'),
+    company: 'City Waste Dept',
+    industry: 'Government',
+    contact: 'Leslie Knope',
+    email: 'lknope@pawnee.gov',
+    phone: '(555) 987-6543',
+    source: 'Referral',
+    status: 'Proposal',
+    createdAt: new Date(Date.now() - 86400000 * 5),
   },
   {
     id: '3',
-    company: 'Indústrias Metal',
-    contact: 'Carlos Oliveira',
-    email: 'carlos@indmetal.com',
-    phone: '(31) 97777-4321',
-    segment: 'Indústria',
-    size: '11-50',
-    source: 'Site',
-    status: 'Em Negociação',
-    createdAt: new Date('2023-10-05'),
+    company: 'EcoDine Restaurants',
+    industry: 'Hospitality',
+    contact: 'Gordon Ramsey',
+    email: 'gramsey@ecodine.com',
+    phone: '(555) 555-5555',
+    source: 'Trade Show',
+    status: 'Qualified',
+    createdAt: new Date(Date.now() - 86400000 * 10),
   },
 ]
 
@@ -79,14 +71,18 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     setLeads((prev) => [newLead, ...prev])
   }
 
-  const updateLeadStatus = (id: string, status: LeadStatus) => {
+  const updateLead = (id: string, updatedData: Partial<Lead>) => {
     setLeads((prev) =>
-      prev.map((lead) => (lead.id === id ? { ...lead, status } : lead)),
+      prev.map((lead) => (lead.id === id ? { ...lead, ...updatedData } : lead)),
     )
   }
 
+  const deleteLead = (id: string) => {
+    setLeads((prev) => prev.filter((lead) => lead.id !== id))
+  }
+
   return (
-    <LeadsContext.Provider value={{ leads, addLead, updateLeadStatus }}>
+    <LeadsContext.Provider value={{ leads, addLead, updateLead, deleteLead }}>
       {children}
     </LeadsContext.Provider>
   )
