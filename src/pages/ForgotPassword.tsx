@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -20,6 +21,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 import { Loader2, MailCheck, ArrowLeft } from 'lucide-react'
 
@@ -30,6 +32,7 @@ const forgotSchema = z.object({
 type ForgotFormValues = z.infer<typeof forgotSchema>
 
 export default function ForgotPassword() {
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
@@ -43,12 +46,27 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data: ForgotFormValues) => {
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
       setSubmittedEmail(data.email)
       setIsSuccess(true)
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description:
+          'Não foi possível enviar o e-mail de recuperação. Tente novamente mais tarde.',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
@@ -68,12 +86,12 @@ export default function ForgotPassword() {
         <Card>
           <CardHeader>
             <CardTitle className="text-xl text-center">
-              Reset your password
+              Redefina sua senha
             </CardTitle>
             {!isSuccess && (
               <CardDescription className="text-center text-sm pt-2">
-                Enter your email address and we'll send you a link to reset your
-                password.
+                Digite o endereço de e-mail associado à sua conta e enviaremos
+                um link para redefinir sua senha.
               </CardDescription>
             )}
           </CardHeader>
@@ -84,17 +102,17 @@ export default function ForgotPassword() {
                   <MailCheck className="h-8 w-8 text-green-600" />
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Check your email. If an account exists for{' '}
+                  Verifique sua caixa de entrada. Se existir uma conta para{' '}
                   <span className="font-medium text-gray-900">
                     {submittedEmail}
                   </span>
-                  , you will receive a password reset link shortly.
+                  , você receberá um link de recuperação em breve.
                 </p>
                 <div className="pt-4 w-full">
                   <Button variant="outline" className="w-full" asChild>
                     <Link to="/login">
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to login
+                      Voltar ao login
                     </Link>
                   </Button>
                 </div>
@@ -110,7 +128,7 @@ export default function ForgotPassword() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email address</FormLabel>
+                        <FormLabel>E-mail cadastrado</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="voce@exemplo.com"
@@ -127,7 +145,7 @@ export default function ForgotPassword() {
                     {isLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Send reset link
+                    Enviar link de recuperação
                   </Button>
                   <div className="mt-6 text-center text-sm">
                     <Link
@@ -135,7 +153,7 @@ export default function ForgotPassword() {
                       className="font-medium text-primary hover:underline inline-flex items-center"
                     >
                       <ArrowLeft className="mr-2 h-3 w-3" />
-                      Back to login
+                      Voltar ao login
                     </Link>
                   </div>
                 </form>

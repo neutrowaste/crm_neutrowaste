@@ -5,8 +5,12 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
-import { User as SupabaseUser } from '@supabase/supabase-js'
+import { User as SupabaseUser, createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env
+  .VITE_SUPABASE_PUBLISHABLE_KEY as string
 
 export interface User {
   id: string
@@ -20,7 +24,8 @@ interface AuthContextType {
   user: User | null
   allUsers: User[]
   isLoading: boolean
-  login: (email: string, pass: string) => Promise<User>
+  loginStep1: (email: string, pass: string) => Promise<void>
+  loginStep2: (email: string, code: string) => Promise<User>
   register: (
     name: string,
     email: string,
@@ -28,7 +33,6 @@ interface AuthContextType {
     role: 'Admin' | 'Seller',
   ) => Promise<void>
   logout: () => Promise<void>
-  finalizeLogin: (user: User) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -76,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: profile.role as 'Admin' | 'Seller',
               isOnline: profile.is_online,
             })
-            // Update online status
             supabase
               .from('profiles')
               .update({ is_online: true })
@@ -105,13 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     fetchUsers()
 
-    // Realtime channel for users status
     const channel = supabase
       .channel('public:profiles')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
+        () => {
           fetchUsers()
         },
       )
@@ -134,12 +136,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
-  const login = async (email: string, pass: string): Promise<User> => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+  const loginStep1 = async (email: string, pass: string): Promise<void> => {
+    // Usa um cliente temporário para verificar a senha sem afetar a sessão atual da aplicação
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const { error } = await tempClient.auth.signInWithPassword({
       email,
       password: pass,
     })
     if (error) throw new Error('E-mail ou senha inválidos.')
+
+    // Se a senha estiver correta, dispara o envio do OTP (E-mail) usando o cliente principal
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email })
+    if (otpError) throw new Error('Erro ao enviar código de verificação.')
+  }
+
+  const loginStep2 = async (email: string, code: string): Promise<User> => {
+    // Verifica o código OTP enviado para o e-mail
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email',
+    })
+    if (error) throw new Error('Código inválido ou expirado.')
+    if (!data.user) throw new Error('Sessão não estabelecida.')
 
     const { data: profile, error: profError } = await supabase
       .from('profiles')
@@ -149,21 +171,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (profError || !profile) throw new Error('Perfil não encontrado.')
 
-    return {
+    const loggedInUser: User = {
       id: profile.id,
       name: profile.name,
       email: profile.email,
       role: profile.role as 'Admin' | 'Seller',
       isOnline: true,
     }
-  }
 
-  const finalizeLogin = async (loggedInUser: User) => {
     setUser(loggedInUser)
     await supabase
       .from('profiles')
       .update({ is_online: true })
       .eq('id', loggedInUser.id)
+
+    return loggedInUser
   }
 
   const register = async (
@@ -215,10 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         allUsers,
         isLoading,
-        login,
+        loginStep1,
+        loginStep2,
         register,
         logout,
-        finalizeLogin,
       }}
     >
       {children}

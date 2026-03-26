@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { useAuth, User } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -41,7 +41,7 @@ const MAX_ATTEMPTS = 5
 const LOCKOUT_MINUTES = 15
 
 export default function Login() {
-  const { login, finalizeLogin } = useAuth()
+  const { loginStep1, loginStep2 } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -52,7 +52,7 @@ export default function Login() {
 
   const [showMfa, setShowMfa] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
-  const [pendingUser, setPendingUser] = useState<User | null>(null)
+  const [pendingEmail, setPendingEmail] = useState<string>('')
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -123,12 +123,11 @@ export default function Login() {
 
     setIsLoading(true)
     try {
-      const user = await login(data.email, data.password)
+      await loginStep1(data.email, data.password)
       setFailedAttempts(0)
       localStorage.removeItem('loginAttempts')
 
-      // Trigger MFA Flow
-      setPendingUser(user)
+      setPendingEmail(data.email)
       setShowMfa(true)
 
       toast({
@@ -137,6 +136,11 @@ export default function Login() {
       })
     } catch (error: any) {
       handleFailedAttempt()
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: error.message,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -144,16 +148,26 @@ export default function Login() {
 
   const handleMfaSubmit = async () => {
     if (mfaCode.length !== 6) {
-      toast({ variant: 'destructive', description: 'Código inválido.' })
+      toast({
+        variant: 'destructive',
+        description: 'O código deve ter 6 dígitos.',
+      })
       return
     }
 
     setIsLoading(true)
-    if (pendingUser) {
-      await finalizeLogin(pendingUser)
+    try {
+      await loginStep2(pendingEmail, mfaCode)
       navigate('/dashboard')
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Falha na verificação',
+        description: error.message,
+      })
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const fillMock = (role: 'admin1' | 'admin2') => {
@@ -176,7 +190,10 @@ export default function Login() {
             </div>
             <CardTitle>Autenticação em Duas Etapas</CardTitle>
             <CardDescription>
-              Digite o código de 6 dígitos enviado para {pendingUser?.email}
+              Digite o código de 6 dígitos que enviamos para <br />
+              <span className="font-medium text-foreground">
+                {pendingEmail}
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 flex flex-col items-center">
@@ -209,10 +226,10 @@ export default function Login() {
               onClick={() => setShowMfa(false)}
               disabled={isLoading}
             >
-              Voltar ao Login
+              Voltar
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              Para testes, digite qualquer combinação de 6 dígitos.
+              Verifique também sua caixa de spam ou lixo eletrônico.
             </p>
           </CardContent>
         </Card>
@@ -239,7 +256,7 @@ export default function Login() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Login Seguro (Supabase)</CardTitle>
+            <CardTitle>Login Seguro</CardTitle>
           </CardHeader>
           <CardContent>
             {lockoutUntil && Date.now() < lockoutUntil ? (
@@ -313,7 +330,7 @@ export default function Login() {
                 </div>
                 <div className="ml-3 flex-1 md:flex md:justify-between">
                   <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                    Contas de teste Supabase:
+                    Preencher dados de teste:
                   </p>
                   <p className="mt-3 text-sm md:ml-6 md:mt-0 flex flex-col gap-2">
                     <button

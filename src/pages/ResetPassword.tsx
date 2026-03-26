@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -20,6 +21,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
 
@@ -36,6 +38,7 @@ const resetSchema = z
 type ResetFormValues = z.infer<typeof resetSchema>
 
 export default function ResetPassword() {
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -49,11 +52,26 @@ export default function ResetPassword() {
 
   const onSubmit = async (data: ResetFormValues) => {
     setIsLoading(true)
-    // Simulate API call to reset password
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
       setIsSuccess(true)
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao redefinir senha',
+        description:
+          'Sua sessão expirou ou o link é inválido. Solicite a recuperação novamente.',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
@@ -73,11 +91,11 @@ export default function ResetPassword() {
         <Card>
           <CardHeader>
             <CardTitle className="text-xl text-center">
-              {isSuccess ? 'Senha atualizada' : 'Create new password'}
+              {isSuccess ? 'Senha atualizada' : 'Crie sua nova senha'}
             </CardTitle>
             {!isSuccess && (
               <CardDescription className="text-center text-sm pt-2">
-                Enter your new password below.
+                Digite sua nova senha abaixo para recuperar o acesso.
               </CardDescription>
             )}
           </CardHeader>
@@ -93,7 +111,7 @@ export default function ResetPassword() {
                 </p>
                 <div className="pt-4 w-full">
                   <Button className="w-full" asChild>
-                    <Link to="/login">Back to login</Link>
+                    <Link to="/login">Voltar ao login</Link>
                   </Button>
                 </div>
               </div>
@@ -108,7 +126,7 @@ export default function ResetPassword() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>New Password</FormLabel>
+                        <FormLabel>Nova senha</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="••••••••"
@@ -126,7 +144,7 @@ export default function ResetPassword() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormLabel>Confirme a nova senha</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="••••••••"
@@ -143,7 +161,7 @@ export default function ResetPassword() {
                     {isLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Reset Password
+                    Redefinir senha
                   </Button>
                   <div className="mt-6 text-center text-sm">
                     <Link
@@ -151,7 +169,7 @@ export default function ResetPassword() {
                       className="font-medium text-primary hover:underline inline-flex items-center"
                     >
                       <ArrowLeft className="mr-2 h-3 w-3" />
-                      Back to login
+                      Cancelar e voltar
                     </Link>
                   </div>
                 </form>
