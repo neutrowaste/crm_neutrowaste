@@ -36,6 +36,7 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
+  const [smtpError, setSmtpError] = useState(false)
 
   const form = useForm<ForgotFormValues>({
     resolver: zodResolver(forgotSchema),
@@ -46,6 +47,7 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data: ForgotFormValues) => {
     setIsLoading(true)
+    setSmtpError(false)
     try {
       const email = data.email.trim()
 
@@ -87,7 +89,15 @@ export default function ForgotPassword() {
             'Por motivos de segurança, aguarde cerca de 1 minuto antes de solicitar um novo envio.'
         } else if (msg.includes('not allowed') || msg.includes('redirect')) {
           errorMessage =
-            'Configuração de URL inválida no servidor. Contate o suporte técnico.'
+            'Configuração de URL de redirecionamento inválida no servidor.'
+        } else if (
+          msg.includes('v.from') ||
+          msg.includes('smtp') ||
+          msg.includes('sender') ||
+          msg.includes('email provider')
+        ) {
+          setSmtpError(true)
+          errorMessage = 'Falha de autenticação no provedor de e-mail (SMTP).'
         } else {
           // Exibe a mensagem original do Supabase para ajudar no diagnóstico
           errorMessage = `Falha reportada pelo servidor: ${error.message}`
@@ -106,6 +116,7 @@ export default function ForgotPassword() {
 
   const handleResend = () => {
     setIsSuccess(false)
+    setSmtpError(false)
     form.reset({ email: submittedEmail })
   }
 
@@ -136,6 +147,48 @@ export default function ForgotPassword() {
             )}
           </CardHeader>
           <CardContent>
+            {smtpError && !isSuccess && (
+              <div className="mb-6 rounded-md bg-destructive/10 p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2">
+                <div className="flex">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <AlertTriangle
+                      className="h-5 w-5 text-destructive"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-semibold text-destructive">
+                      Erro de Configuração SMTP
+                    </h3>
+                    <div className="mt-2 text-sm text-destructive/90 space-y-2">
+                      <p>
+                        O provedor bloqueou o envio. O erro de servidor indica
+                        que o <strong>e-mail de remetente</strong> configurado
+                        no painel é inválido ou não autorizado.
+                      </p>
+                      <p className="font-medium">
+                        Solução para o Administrador:
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Acesse o painel do Supabase.</li>
+                        <li>
+                          Vá em{' '}
+                          <strong>
+                            Authentication &gt; Providers &gt; Email
+                          </strong>
+                          .
+                        </li>
+                        <li>
+                          Verifique e corrija as configurações de SMTP
+                          personalizado (especialmente o campo "Sender email").
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isSuccess ? (
               <div className="flex flex-col items-center justify-center space-y-6 text-center animate-fade-in">
                 <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-3">

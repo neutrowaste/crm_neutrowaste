@@ -1,6 +1,6 @@
 {
   "_versions": {
     "get-maps-config": 2,
-    "send-welcome-email": 2
+    "send-welcome-email": 3
   }
 }
