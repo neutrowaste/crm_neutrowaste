@@ -182,11 +182,25 @@ export default function Settings() {
         description: 'Verifique sua caixa de entrada para redefinir sua senha.',
       })
     } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao enviar',
-        description: err.message,
-      })
+      const msg = err.message?.toLowerCase() || ''
+      if (
+        msg.includes('smtp') ||
+        msg.includes('sender') ||
+        msg.includes('v.from')
+      ) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro de SMTP no Supabase',
+          description:
+            'Não foi possível enviar o e-mail devido a um erro de configuração do provedor SMTP. Verifique no painel do Supabase.',
+        })
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao enviar',
+          description: err.message,
+        })
+      }
     } finally {
       setIsSendingReset(false)
     }
@@ -416,7 +430,7 @@ export default function Settings() {
                                   onValueChange={(val) =>
                                     handleUpdateUserRole(u.id, val)
                                   }
-                                  disabled={u.id === user.id} // Impede alterar o próprio cargo facilmente
+                                  disabled={u.id === user.id}
                                 >
                                   <SelectTrigger className="w-32 h-8 text-xs">
                                     <SelectValue />
@@ -454,7 +468,7 @@ export default function Settings() {
                                   onValueChange={(val) =>
                                     handleUpdateUserStatus(u.id, val)
                                   }
-                                  disabled={u.id === user.id} // Impede bloquear a si mesmo
+                                  disabled={u.id === user.id}
                                 >
                                   <SelectTrigger className="w-36 h-8 text-xs ml-auto">
                                     <SelectValue />

@@ -119,11 +119,15 @@ export default function Login() {
       })
       navigate('/dashboard')
     } catch (error: any) {
-      if (
-        error.message?.includes('inválidos') ||
-        error.message?.includes('inválida')
-      ) {
+      const msg = error.message?.toLowerCase() || ''
+      if (msg.includes('inválidos') || msg.includes('inválida')) {
         handleFailedAttempt()
+      } else if (msg.includes('confirmado')) {
+        toast({
+          variant: 'destructive',
+          title: 'Acesso Negado',
+          description: error.message,
+        })
       } else {
         toast({
           variant: 'destructive',

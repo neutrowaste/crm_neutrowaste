@@ -64,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single()
         .then(({ data: profile }) => {
           if (profile) {
-            // Verifica status do usuário antes de liberar o acesso
             if (profile.status !== 'active') {
               supabase.auth.signOut()
               setUser(null)
@@ -143,9 +142,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: pass,
     })
 
-    if (error) throw new Error('E-mail ou senha inválidos.')
+    if (error) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('email not confirmed')) {
+        throw new Error(
+          'E-mail não confirmado. Verifique sua caixa de entrada ou contate o administrador.',
+        )
+      }
+      throw new Error('E-mail ou senha inválidos.')
+    }
 
-    // Verifica se o usuário está ativo antes de liberar
     if (data.user) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -172,14 +178,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     })
-    if (error) throw new Error(error.message)
 
-    // Novo registro entra como 'pending'. Desloga instantaneamente para evitar sessão ativa.
+    if (error) {
+      const msg = error.message.toLowerCase()
+      if (
+        msg.includes('smtp') ||
+        msg.includes('sender') ||
+        msg.includes('v.from') ||
+        msg.includes('email provider')
+      ) {
+        throw new Error(
+          'Falha de envio de e-mail (Erro SMTP). O administrador precisa corrigir as credenciais no painel do Supabase.',
+        )
+      }
+      throw new Error(error.message)
+    }
+
     if (data.session) {
       await supabase.auth.signOut()
     }
 
-    // Dispara o email de boas vindas
     supabase.functions
       .invoke('send-welcome-email', {
         body: { email, name },

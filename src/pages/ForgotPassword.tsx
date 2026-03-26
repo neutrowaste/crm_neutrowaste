@@ -56,10 +56,9 @@ export default function ForgotPassword() {
       })
 
       if (error) {
-        throw error // Lança o erro original para capturarmos os detalhes no catch
+        throw error
       }
 
-      // Log para auditoria de disparo de e-mail
       await supabase
         .from('logs')
         .insert({
@@ -97,9 +96,9 @@ export default function ForgotPassword() {
           msg.includes('email provider')
         ) {
           setSmtpError(true)
-          errorMessage = 'Falha de autenticação no provedor de e-mail (SMTP).'
+          errorMessage =
+            'Falha de autenticação no provedor de e-mail (SMTP) do Supabase.'
         } else {
-          // Exibe a mensagem original do Supabase para ajudar no diagnóstico
           errorMessage = `Falha reportada pelo servidor: ${error.message}`
         }
       }
@@ -162,15 +161,15 @@ export default function ForgotPassword() {
                     </h3>
                     <div className="mt-2 text-sm text-destructive/90 space-y-2">
                       <p>
-                        O provedor bloqueou o envio. O erro de servidor indica
-                        que o <strong>e-mail de remetente</strong> configurado
-                        no painel é inválido ou não autorizado.
+                        O provedor de e-mail bloqueou o envio. O erro indica que
+                        as credenciais SMTP ou o remetente configurado no painel
+                        estão inválidos.
                       </p>
-                      <p className="font-medium">
+                      <p className="font-medium text-xs mt-2">
                         Solução para o Administrador:
                       </p>
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li>Acesse o painel do Supabase.</li>
+                      <ul className="list-disc pl-4 text-xs space-y-1">
+                        <li>Acesse o painel do projeto no Supabase.</li>
                         <li>
                           Vá em{' '}
                           <strong>
@@ -179,20 +178,25 @@ export default function ForgotPassword() {
                           .
                         </li>
                         <li>
-                          Verifique e corrija as configurações de SMTP
-                          personalizado (especialmente o campo "Sender email").
+                          Desative a opção <strong>Custom SMTP</strong> ou
+                          corrija os dados informados (Especialmente Host,
+                          Porta, Usuário, Senha e Sender Email).
                         </li>
                       </ul>
-                      <div className="pt-3">
+                      <div className="pt-3 flex flex-col gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full bg-background hover:bg-muted text-foreground"
-                          asChild
+                          onClick={() => {
+                            setSubmittedEmail(
+                              form.getValues('email') || 'teste@exemplo.com',
+                            )
+                            setIsSuccess(true)
+                            setSmtpError(false)
+                          }}
                         >
-                          <Link to="/login">
-                            Ignorar erro e tentar fazer login
-                          </Link>
+                          Ignorar erro e ver tela de sucesso (Teste UI)
                         </Button>
                       </div>
                     </div>
