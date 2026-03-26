@@ -8,7 +8,7 @@ import { Download } from 'lucide-react'
 export default function Index() {
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Painel
@@ -18,10 +18,19 @@ export default function Index() {
             hoje.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => window.print()}>
           <Download className="mr-2 h-4 w-4" />
           Exportar Relatório
         </Button>
+      </div>
+
+      <div className="hidden print:block mb-4">
+        <h1 className="text-2xl font-bold">
+          Relatório do Painel - Neutrowaste
+        </h1>
+        <p className="text-sm text-gray-500">
+          Gerado em: {new Date().toLocaleDateString('pt-BR')}
+        </p>
       </div>
 
       <Metrics />
@@ -31,7 +40,7 @@ export default function Index() {
           <SalesFunnel />
           <InteractionHistory />
         </div>
-        <div>
+        <div className="print:hidden">
           <TaskSchedule />
         </div>
       </div>

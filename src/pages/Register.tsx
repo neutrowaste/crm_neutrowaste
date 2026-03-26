@@ -14,6 +14,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
@@ -25,6 +32,9 @@ const registerSchema = z
     email: z.string().email('E-mail inválido.'),
     password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres.'),
     confirmPassword: z.string(),
+    role: z.enum(['Admin', 'Seller'], {
+      required_error: 'Selecione um perfil.',
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'As senhas não coincidem.',
@@ -46,13 +56,14 @@ export default function Register() {
       email: '',
       password: '',
       confirmPassword: '',
+      role: 'Seller',
     },
   })
 
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true)
     try {
-      await register(data.name, data.email, data.password)
+      await register(data.name, data.email, data.password, data.role)
       toast({
         title: 'Conta criada com sucesso!',
         description: 'Bem-vindo ao Neutrowaste CRM.',
@@ -127,6 +138,31 @@ export default function Register() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Perfil de Acesso</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um perfil" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Admin">Administrador</SelectItem>
+                          <SelectItem value="Seller">Vendedor</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

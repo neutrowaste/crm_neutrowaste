@@ -6,17 +6,23 @@ import {
   ReactNode,
 } from 'react'
 
-interface User {
+export interface User {
   id: string
   name: string
   email: string
+  role: 'Admin' | 'Seller'
 }
 
 interface AuthContextType {
   user: User | null
   isLoading: boolean
   login: (email: string, pass: string) => Promise<void>
-  register: (name: string, email: string, pass: string) => Promise<void>
+  register: (
+    name: string,
+    email: string,
+    pass: string,
+    role: 'Admin' | 'Seller',
+  ) => Promise<void>
   logout: () => void
 }
 
@@ -41,6 +47,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, pass: string) => {
     const usersStr = localStorage.getItem('@neutrowaste:users')
     const users = usersStr ? JSON.parse(usersStr) : []
+
+    // Default mock users for testing
+    if (email === 'admin@neutrowaste.com' && pass === 'admin123') {
+      const adminUser: User = {
+        id: 'admin-1',
+        name: 'Administrador',
+        email,
+        role: 'Admin',
+      }
+      setUser(adminUser)
+      localStorage.setItem('@neutrowaste:user', JSON.stringify(adminUser))
+      return
+    }
+
+    if (email === 'vendedor@neutrowaste.com' && pass === 'vendedor123') {
+      const sellerUser: User = {
+        id: 'seller-1',
+        name: 'Vendedor',
+        email,
+        role: 'Seller',
+      }
+      setUser(sellerUser)
+      localStorage.setItem('@neutrowaste:user', JSON.stringify(sellerUser))
+      return
+    }
+
     const found = users.find(
       (u: any) => u.email === email && u.password === pass,
     )
@@ -49,12 +81,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('E-mail ou senha inválidos.')
     }
 
-    const loggedUser = { id: found.id, name: found.name, email: found.email }
+    const loggedUser: User = {
+      id: found.id,
+      name: found.name,
+      email: found.email,
+      role: found.role || 'Seller',
+    }
     setUser(loggedUser)
     localStorage.setItem('@neutrowaste:user', JSON.stringify(loggedUser))
   }
 
-  const register = async (name: string, email: string, pass: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    pass: string,
+    role: 'Admin' | 'Seller',
+  ) => {
     const usersStr = localStorage.getItem('@neutrowaste:users')
     const users = usersStr ? JSON.parse(usersStr) : []
 
@@ -67,14 +109,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name,
       email,
       password: pass,
+      role,
     }
     users.push(newUser)
     localStorage.setItem('@neutrowaste:users', JSON.stringify(users))
 
-    const loggedUser = {
+    const loggedUser: User = {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
+      role: newUser.role,
     }
     setUser(loggedUser)
     localStorage.setItem('@neutrowaste:user', JSON.stringify(loggedUser))

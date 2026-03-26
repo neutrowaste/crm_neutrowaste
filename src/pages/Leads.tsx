@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLeads } from '@/contexts/LeadsContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,7 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Search, MoreHorizontal, Edit, Trash } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash,
+  MessageCircle,
+  Mail,
+  Download,
+  FileText,
+  Table as TableIcon,
+} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +52,7 @@ const statusColors = {
 
 export default function Leads() {
   const { leads, removeLead } = useLeads()
+  const { user } = useAuth()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -63,9 +76,50 @@ export default function Leads() {
     })
   }
 
+  const exportCSV = () => {
+    const headers = [
+      'Nome',
+      'Empresa',
+      'E-mail',
+      'Telefone',
+      'Status',
+      'Origem',
+      'Valor',
+      'Data de Criação',
+    ]
+    const csvContent = [
+      headers.join(','),
+      ...filteredLeads.map((l) =>
+        [
+          `"${l.name}"`,
+          `"${l.company}"`,
+          `"${l.email}"`,
+          `"${l.phone || ''}"`,
+          `"${l.status}"`,
+          `"${l.source}"`,
+          l.value || 0,
+          `"${format(new Date(l.createdAt), 'dd/MM/yyyy')}"`,
+        ].join(','),
+      ),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'leads_neutrowaste.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const exportPDF = () => {
+    window.print()
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-6 print:gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Leads
@@ -74,15 +128,42 @@ export default function Leads() {
             Gerencie seus leads e oportunidades de vendas.
           </p>
         </div>
-        <Button asChild>
-          <Link to="/leads/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Lead
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar Dados
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportPDF}>
+                <FileText className="mr-2 h-4 w-4" />
+                Exportar para PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCSV}>
+                <TableIcon className="mr-2 h-4 w-4" />
+                Exportar para Excel (CSV)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button asChild>
+            <Link to="/leads/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Lead
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="hidden print:block mb-4">
+        <h1 className="text-2xl font-bold">Relatório de Leads - Neutrowaste</h1>
+        <p className="text-sm text-gray-500">
+          Gerado em: {new Date().toLocaleDateString('pt-BR')}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center print:hidden">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -121,17 +202,17 @@ export default function Leads() {
         </div>
       </div>
 
-      <div className="rounded-md border bg-white overflow-x-auto">
-        <Table>
+      <div className="rounded-md border bg-white overflow-x-auto print:border-none print:shadow-none">
+        <Table className="print:text-xs">
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Empresa</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Origem</TableHead>
+              <TableHead className="print:hidden">Ações de Contato</TableHead>
               <TableHead>Valor</TableHead>
-              <TableHead>Data de Criação</TableHead>
-              <TableHead className="w-[50px]">Ações</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead className="w-[50px] print:hidden">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -159,7 +240,30 @@ export default function Leads() {
                       {lead.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{lead.source}</TableCell>
+                  <TableCell className="print:hidden">
+                    <div className="flex items-center gap-3">
+                      {lead.phone ? (
+                        <a
+                          href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-green-600 hover:text-green-700 transition-colors"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <span className="w-4 h-4" />
+                      )}
+                      <a
+                        href={`mailto:${lead.email}`}
+                        className="text-blue-600 hover:text-blue-700 transition-colors"
+                        title="Enviar E-mail"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {lead.value
                       ? new Intl.NumberFormat('pt-BR', {
@@ -169,11 +273,9 @@ export default function Leads() {
                       : '-'}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(lead.createdAt), 'dd MMM yyyy', {
-                      locale: ptBR,
-                    })}
+                    {format(new Date(lead.createdAt), 'dd/MM/yyyy')}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="print:hidden">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -181,17 +283,21 @@ export default function Leads() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
+                        <DropdownMenuItem asChild>
+                          <Link to={`/leads/edit/${lead.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600 focus:bg-red-50 focus:text-red-600"
-                          onClick={() => handleDelete(lead.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {user?.role === 'Admin' && (
+                          <DropdownMenuItem
+                            className="text-red-600 focus:bg-red-50 focus:text-red-600"
+                            onClick={() => handleDelete(lead.id)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

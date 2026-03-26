@@ -7,29 +7,47 @@ import {
   BarChart3,
   Settings,
   Menu,
+  DollarSign,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 
-const navigation = [
-  { name: 'Painel', href: '/', icon: LayoutDashboard },
-  { name: 'Leads', href: '/leads', icon: Users },
-  { name: 'Calendário', href: '/calendar', icon: Calendar },
-  { name: 'Relatórios', href: '/reports', icon: BarChart3 },
-  { name: 'Configurações', href: '/settings', icon: Settings },
-]
+const getNavigation = (role: string) => {
+  const baseNav = [
+    { name: 'Painel', href: '/', icon: LayoutDashboard },
+    { name: 'Leads', href: '/leads', icon: Users },
+    { name: 'Calendário', href: '/calendar', icon: Calendar },
+    { name: 'Relatórios', href: '/reports', icon: BarChart3 },
+  ]
+
+  if (role === 'Admin') {
+    baseNav.push({
+      name: 'Relatórios Financeiros',
+      href: '/financial-reports',
+      icon: DollarSign,
+    })
+  }
+
+  baseNav.push({ name: 'Configurações', href: '/settings', icon: Settings })
+
+  return baseNav
+}
 
 export function Sidebar() {
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const { user } = useAuth()
+
+  const navigation = getNavigation(user?.role || 'Seller')
 
   return (
     <>
       <Button
         variant="ghost"
         size="icon"
-        className="fixed left-4 top-3 z-50 md:hidden"
+        className="fixed left-4 top-3 z-50 md:hidden print:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         <Menu className="h-5 w-5" />
@@ -37,7 +55,7 @@ export function Sidebar() {
 
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col',
+          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col print:hidden',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -85,7 +103,7 @@ export function Sidebar() {
 
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-30 bg-black/50 md:hidden backdrop-blur-sm print:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}

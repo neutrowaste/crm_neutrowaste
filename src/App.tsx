@@ -40,6 +40,10 @@ function App() {
                 element={<PlaceholderPage title="Relatórios" />}
               />
               <Route
+                path="financial-reports"
+                element={<PlaceholderPage title="Relatórios Financeiros" />}
+              />
+              <Route
                 path="settings"
                 element={<PlaceholderPage title="Configurações" />}
               />
