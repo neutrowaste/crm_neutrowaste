@@ -29,7 +29,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed left-4 top-4 z-50 md:hidden"
+        className="fixed left-4 top-3 z-50 md:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         <Menu className="h-5 w-5" />
@@ -37,11 +37,11 @@ export function Sidebar() {
 
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-16 items-center px-6 border-b">
+        <div className="flex h-16 shrink-0 items-center px-6 border-b">
           <Link to="/" className="flex items-center gap-2">
             <img
               src={logoImg}
@@ -51,7 +51,7 @@ export function Sidebar() {
           </Link>
         </div>
 
-        <nav className="space-y-1 p-4">
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
           {navigation.map((item) => {
             const isActive =
               location.pathname === item.href ||
@@ -85,7 +85,7 @@ export function Sidebar() {
 
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          className="fixed inset-0 z-30 bg-black/50 md:hidden backdrop-blur-sm"
           onClick={() => setIsMobileOpen(false)}
         />
       )}

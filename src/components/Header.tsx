@@ -12,7 +12,7 @@ import {
 
 export function Header() {
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6 md:pl-6 pl-16">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-white/80 backdrop-blur-md px-4 sm:px-6 md:px-8 pl-16 md:pl-8">
       <div className="flex flex-1 items-center gap-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -23,10 +23,10 @@ export function Header() {
           />
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-600" />
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600" />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
