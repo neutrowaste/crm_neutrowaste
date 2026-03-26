@@ -8,6 +8,8 @@ import {
   Settings,
   Menu,
   DollarSign,
+  FileText,
+  Mail,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
@@ -18,7 +20,7 @@ const getNavigation = (role: string) => {
   const baseNav = [
     { name: 'Painel', href: '/', icon: LayoutDashboard },
     { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'Calendário', href: '/calendar', icon: Calendar },
+    { name: 'Agenda', href: '/calendar', icon: Calendar },
     { name: 'Relatórios', href: '/reports', icon: BarChart3 },
   ]
 
@@ -28,8 +30,14 @@ const getNavigation = (role: string) => {
       href: '/financial-reports',
       icon: DollarSign,
     })
+    baseNav.push({
+      name: 'Logs do Sistema',
+      href: '/logs',
+      icon: FileText,
+    })
   }
 
+  baseNav.push({ name: 'Modelos de E-mail', href: '/templates', icon: Mail })
   baseNav.push({ name: 'Configurações', href: '/settings', icon: Settings })
 
   return baseNav

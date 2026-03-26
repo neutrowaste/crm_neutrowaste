@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useLeads } from '@/contexts/LeadsContext'
+import { useLogs } from '@/contexts/LogsContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -42,6 +44,8 @@ type LeadFormValues = z.infer<typeof leadSchema>
 
 export default function NewLead() {
   const { addLead } = useLeads()
+  const { addLog } = useLogs()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -60,7 +64,17 @@ export default function NewLead() {
   })
 
   const onSubmit = (data: LeadFormValues) => {
-    addLead(data)
+    const newId = addLead(data)
+    if (user) {
+      addLog({
+        userId: user.id,
+        userName: user.name,
+        action: 'Criar',
+        leadId: newId,
+        leadName: data.name,
+        details: 'Lead cadastrado no sistema',
+      })
+    }
     toast({
       title: 'Sucesso!',
       description: 'Lead cadastrado com sucesso!',
@@ -183,7 +197,7 @@ export default function NewLead() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um status" />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -210,7 +224,7 @@ export default function NewLead() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma origem" />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -244,11 +258,7 @@ export default function NewLead() {
                   <FormItem className="md:col-span-2">
                     <FormLabel>Observações</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Adicione qualquer observação relevante sobre este lead..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
+                      <Textarea className="min-h-[100px]" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

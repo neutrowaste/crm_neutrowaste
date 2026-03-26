@@ -18,6 +18,7 @@ export interface Lead {
   industry?: string
   notes?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface Notification {
@@ -30,7 +31,7 @@ export interface Notification {
 interface LeadsContextType {
   leads: Lead[]
   notifications: Notification[]
-  addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => void
+  addLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => string
   updateLead: (id: string, lead: Partial<Lead>) => void
   removeLead: (id: string) => void
   markNotificationsAsRead: () => void
@@ -47,6 +48,7 @@ const mockLeads: Lead[] = [
     source: 'Site',
     value: 15000,
     createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '2',
@@ -58,6 +60,7 @@ const mockLeads: Lead[] = [
     source: 'Indicação',
     value: 8000,
     createdAt: '2024-03-21T14:30:00Z',
+    updatedAt: '2024-03-21T14:30:00Z',
   },
   {
     id: '3',
@@ -68,6 +71,7 @@ const mockLeads: Lead[] = [
     source: 'Ligação',
     value: 25000,
     createdAt: '2024-03-18T09:15:00Z',
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
   },
   {
     id: '4',
@@ -79,6 +83,7 @@ const mockLeads: Lead[] = [
     source: 'Evento',
     value: 12000,
     createdAt: '2024-03-22T11:45:00Z',
+    updatedAt: '2024-03-22T11:45:00Z',
   },
   {
     id: '5',
@@ -90,6 +95,7 @@ const mockLeads: Lead[] = [
     source: 'Site',
     value: 45000,
     createdAt: '2024-03-15T16:20:00Z',
+    updatedAt: '2024-03-15T16:20:00Z',
   },
 ]
 
@@ -131,14 +137,17 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
   }
 
-  const addLead = (newLead: Omit<Lead, 'id' | 'createdAt'>) => {
+  const addLead = (newLead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = Math.random().toString(36).substr(2, 9)
     const lead: Lead = {
       ...newLead,
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     setLeads((prev) => [lead, ...prev])
     addNotification(`Novo lead: ${lead.name} cadastrado`)
+    return id
   }
 
   const updateLead = (id: string, updatedData: Partial<Lead>) => {
@@ -150,7 +159,11 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
               `Status do lead ${lead.name} alterado para ${updatedData.status}`,
             )
           }
-          return { ...lead, ...updatedData }
+          return {
+            ...lead,
+            ...updatedData,
+            updatedAt: new Date().toISOString(),
+          }
         }
         return lead
       }),
