@@ -31,6 +31,7 @@ export default function Portal() {
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false)
   const [signatureName, setSignatureName] = useState('')
   const [hasSigned, setHasSigned] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
     if (
@@ -79,38 +80,45 @@ export default function Portal() {
   const isInvalid =
     contract.status === 'Draft' || contract.status === 'Rejected'
 
-  const handleSign = () => {
+  const handleSign = async () => {
     if (!signatureName.trim()) return
+    setIsProcessing(true)
 
-    updateContractStatus(contract.id, 'Signed')
+    try {
+      await updateContractStatus(contract.id, 'Signed')
 
-    if (lead.status !== 'Ganho') {
-      updateLead(lead.id, { status: 'Ganho' })
+      if (lead.status !== 'Ganho') {
+        await updateLead(lead.id, { status: 'Ganho' })
+      }
+
+      await addLog({
+        userId: 'customer',
+        userName: signatureName,
+        action: 'Assinatura',
+        leadId: lead.id,
+        leadName: lead.name,
+        details: `Documento "${contract.name}" assinado digitalmente por ${signatureName} no Portal do Cliente.`,
+      })
+
+      const salesperson = allUsers.find((u) => u.id === contract.uploadedBy)
+      const emailBody = `Olá ${lead.name},\n\nO documento "${contract.name}" da ${lead.company} foi assinado com sucesso. Uma cópia foi enviada para ${salesperson?.email || 'seu consultor'}.\n\nObrigado por escolher a Neutrowaste!`
+
+      await addLog({
+        userId: 'system',
+        userName: 'Sistema Automático',
+        action: 'Email Enviado',
+        leadId: lead.id,
+        leadName: lead.name,
+        details: `Confirmação de assinatura enviada para ${lead.email} e ${salesperson?.email}.\n\nConteúdo:\n${emailBody}`,
+      })
+
+      setHasSigned(true)
+      setIsSignDialogOpen(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsProcessing(false)
     }
-
-    addLog({
-      userId: 'customer',
-      userName: signatureName,
-      action: 'Assinatura',
-      leadId: lead.id,
-      leadName: lead.name,
-      details: `Documento "${contract.name}" assinado digitalmente por ${signatureName} no Portal do Cliente.`,
-    })
-
-    const salesperson = allUsers.find((u) => u.id === contract.uploadedBy)
-    const emailBody = `Olá ${lead.name},\n\nO documento "${contract.name}" da ${lead.company} foi assinado com sucesso. Uma cópia foi enviada para ${salesperson?.email || 'seu consultor'}.\n\nObrigado por escolher a Neutrowaste!`
-
-    addLog({
-      userId: 'system',
-      userName: 'Sistema Automático',
-      action: 'Email Enviado',
-      leadId: lead.id,
-      leadName: lead.name,
-      details: `Confirmação de assinatura enviada para ${lead.email} e ${salesperson?.email}.\n\nConteúdo:\n${emailBody}`,
-    })
-
-    setHasSigned(true)
-    setIsSignDialogOpen(false)
   }
 
   return (
@@ -204,6 +212,7 @@ export default function Portal() {
                     <Button
                       className="w-full h-12 text-base font-medium shadow-md transition-transform hover:-translate-y-0.5"
                       onClick={() => setIsSignDialogOpen(true)}
+                      disabled={isProcessing}
                     >
                       <FileSignature className="w-5 h-5 mr-2" />
                       Assinar Documento
@@ -241,6 +250,7 @@ export default function Portal() {
                 value={signatureName}
                 onChange={(e) => setSignatureName(e.target.value)}
                 className="h-11"
+                disabled={isProcessing}
               />
             </div>
           </div>
@@ -248,11 +258,15 @@ export default function Portal() {
             <Button
               variant="outline"
               onClick={() => setIsSignDialogOpen(false)}
+              disabled={isProcessing}
             >
               Cancelar
             </Button>
-            <Button onClick={handleSign} disabled={!signatureName.trim()}>
-              Confirmar Assinatura
+            <Button
+              onClick={handleSign}
+              disabled={!signatureName.trim() || isProcessing}
+            >
+              {isProcessing ? 'Processando...' : 'Confirmar Assinatura'}
             </Button>
           </DialogFooter>
         </DialogContent>

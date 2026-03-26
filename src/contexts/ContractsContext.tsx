@@ -6,6 +6,7 @@ import {
   ReactNode,
   useRef,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useLeads } from '@/contexts/LeadsContext'
 import { addDays } from 'date-fns'
@@ -33,126 +34,124 @@ interface ContractsContextType {
   contracts: Contract[]
   addContract: (
     contract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
-  ) => string
-  updateContractStatus: (id: string, status: ContractStatus) => void
-  deleteContract: (id: string) => void
+  ) => Promise<string>
+  updateContractStatus: (id: string, status: ContractStatus) => Promise<void>
+  deleteContract: (id: string) => Promise<void>
 }
-
-const mockContracts: Contract[] = [
-  {
-    id: 'c1',
-    leadId: '1',
-    name: 'Proposta Comercial - Tech Solutions',
-    status: 'Sent for Signature',
-    uploadedBy: 'admin-1',
-    uploadedByName: 'Administrador',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    fileUrl: '#',
-    expiresAt: addDays(new Date(), 5).toISOString(),
-  },
-  {
-    id: 'c2',
-    leadId: '3',
-    name: 'Contrato de Prestação de Serviços - Agile Systems',
-    status: 'Signed',
-    uploadedBy: 'seller-1',
-    uploadedByName: 'Vendedor',
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    fileUrl: '#',
-    expiresAt: addDays(new Date(), 365).toISOString(),
-  },
-]
 
 const ContractsContext = createContext<ContractsContextType | undefined>(
   undefined,
 )
 
-export function ContractsProvider({ children }: { children: ReactNode }) {
-  const [contracts, setContracts] = useState<Contract[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:contracts')
-    return saved ? JSON.parse(saved) : mockContracts
-  })
+const mapContract = (data: any): Contract => ({
+  id: data.id,
+  leadId: data.lead_id,
+  name: data.name,
+  status: data.status,
+  uploadedBy: data.uploaded_by || '',
+  uploadedByName: data.uploaded_by_name || 'Usuário',
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  fileUrl: data.file_url || undefined,
+  expiresAt: data.expires_at || undefined,
+})
 
+export function ContractsProvider({ children }: { children: ReactNode }) {
+  const [contracts, setContracts] = useState<Contract[]>([])
   const { toast } = useToast()
   const { leads, addNotification } = useLeads()
-  const prevContractsRef = useRef<Contract[]>(contracts)
+  const prevContractsRef = useRef<Contract[]>([])
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:contracts', JSON.stringify(contracts))
-    prevContractsRef.current = contracts
-  }, [contracts])
-
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === '@neutrowaste:contracts' && e.newValue) {
-        try {
-          const newContracts: Contract[] = JSON.parse(e.newValue)
-          const signedNewly = newContracts.filter(
-            (c) =>
-              c.status === 'Signed' &&
-              prevContractsRef.current.find(
-                (pc) => pc.id === c.id && pc.status !== 'Signed',
-              ),
-          )
-
-          signedNewly.forEach((c) => {
-            const lead = leads.find((l) => l.id === c.leadId)
-            const clientName = lead ? lead.company : 'Cliente'
-            toast({
-              title: 'Contrato Assinado!',
-              description: `Sucesso: O contrato para ${clientName} foi assinado!`,
-            })
-          })
-
-          setContracts(newContracts)
-          prevContractsRef.current = newContracts
-        } catch (err) {
-          // Ignore JSON parse errors
-        }
+    const fetchContracts = async () => {
+      const { data } = await supabase
+        .from('contracts')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (data) {
+        const mapped = data.map(mapContract)
+        setContracts(mapped)
+        prevContractsRef.current = mapped
       }
     }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [leads, toast])
+    fetchContracts()
 
-  const addContract = (
-    newContract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
-  ) => {
-    const id = Math.random().toString(36).substr(2, 9)
-    const contract: Contract = {
-      ...newContract,
-      id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      expiresAt: addDays(new Date(), 30).toISOString(), // Default expiration
+    const channel = supabase
+      .channel('public:contracts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'contracts' },
+        (payload) => {
+          fetchContracts()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
-    setContracts((prev) => [contract, ...prev])
-    return id
+  }, [])
+
+  const addContract = async (
+    newContract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<string> => {
+    const { data, error } = await supabase
+      .from('contracts')
+      .insert({
+        lead_id: newContract.leadId,
+        name: newContract.name,
+        status: newContract.status,
+        uploaded_by: newContract.uploadedBy,
+        uploaded_by_name: newContract.uploadedByName,
+        file_url: newContract.fileUrl,
+        expires_at:
+          newContract.expiresAt || addDays(new Date(), 30).toISOString(),
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    if (data) {
+      const contract = mapContract(data)
+      setContracts((prev) => [contract, ...prev])
+      return contract.id
+    }
+    return ''
   }
 
-  const updateContractStatus = (id: string, status: ContractStatus) => {
-    setContracts((prev) =>
-      prev.map((c) => {
-        if (c.id === id) {
-          if (status === 'Signed' && c.status !== 'Signed') {
-            const lead = leads.find((l) => l.id === c.leadId)
-            const clientName = lead ? lead.company : 'Cliente'
-            toast({
-              title: 'Contrato Assinado!',
-              description: `Sucesso: O contrato para ${clientName} foi assinado!`,
-            })
-            addNotification(`Contrato "${c.name}" assinado por ${clientName}`)
-          }
-          return { ...c, status, updatedAt: new Date().toISOString() }
-        }
-        return c
-      }),
-    )
+  const updateContractStatus = async (id: string, status: ContractStatus) => {
+    const { data, error } = await supabase
+      .from('contracts')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (data) {
+      const contract = mapContract(data)
+      setContracts((prev) => prev.map((c) => (c.id === id ? contract : c)))
+
+      if (status === 'Signed') {
+        const lead = leads.find((l) => l.id === contract.leadId)
+        const clientName = lead ? lead.company : 'Cliente'
+        toast({
+          title: 'Contrato Assinado!',
+          description: `Sucesso: O contrato para ${clientName} foi assinado!`,
+        })
+        addNotification(
+          `Contrato "${contract.name}" assinado por ${clientName}`,
+        )
+      }
+    }
   }
 
-  const deleteContract = (id: string) => {
+  const deleteContract = async (id: string) => {
+    const { error } = await supabase.from('contracts').delete().eq('id', id)
+    if (error) throw error
     setContracts((prev) => prev.filter((c) => c.id !== id))
   }
 

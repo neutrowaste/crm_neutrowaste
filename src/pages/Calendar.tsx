@@ -24,35 +24,52 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Trash, FileSignature, AlertCircle } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const { tasks, addTask, toggleComplete, deleteTask } = useTasks()
   const { leads } = useLeads()
   const { contracts } = useContracts()
+  const { toast } = useToast()
 
   const [title, setTitle] = useState('')
   const [time, setTime] = useState('')
   const [leadId, setLeadId] = useState('')
   const [description, setDescription] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!date || !title || !time || !leadId) return
+    setIsProcessing(true)
 
-    addTask({
-      leadId,
-      title,
-      dueDate: format(date, 'yyyy-MM-dd'),
-      time,
-      description,
-      completed: false,
-    })
-
-    setTitle('')
-    setTime('')
-    setLeadId('')
-    setDescription('')
+    try {
+      await addTask({
+        leadId,
+        title,
+        dueDate: format(date, 'yyyy-MM-dd'),
+        time,
+        description,
+        completed: false,
+      })
+      toast({
+        title: 'Tarefa criada',
+        description: 'A tarefa foi agendada com sucesso.',
+      })
+      setTitle('')
+      setTime('')
+      setLeadId('')
+      setDescription('')
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: e.message || 'Falha ao criar tarefa.',
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const selectedDateStr = date ? format(date, 'yyyy-MM-dd') : ''
@@ -118,7 +135,12 @@ export default function CalendarPage() {
               <form onSubmit={handleAddTask} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Lead</label>
-                  <Select value={leadId} onValueChange={setLeadId} required>
+                  <Select
+                    value={leadId}
+                    onValueChange={setLeadId}
+                    required
+                    disabled={isProcessing}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um lead" />
                     </SelectTrigger>
@@ -138,6 +160,7 @@ export default function CalendarPage() {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Ex: Ligação"
                     required
+                    disabled={isProcessing}
                   />
                 </div>
                 <div className="space-y-2">
@@ -147,10 +170,15 @@ export default function CalendarPage() {
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
                     required
+                    disabled={isProcessing}
                   />
                 </div>
-                <Button type="submit" disabled={!date} className="w-full">
-                  Salvar Tarefa
+                <Button
+                  type="submit"
+                  disabled={!date || isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? 'Salvando...' : 'Salvar Tarefa'}
                 </Button>
               </form>
             </CardContent>

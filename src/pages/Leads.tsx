@@ -95,19 +95,30 @@ export default function Leads() {
     })
   }, [leads, searchTerm, statusFilter, sortBy])
 
-  const handleDelete = (lead: Lead) => {
-    removeLead(lead.id)
-    if (user) {
-      addLog({
-        userId: user.id,
-        userName: user.name,
-        action: 'Excluir',
-        leadId: lead.id,
-        leadName: lead.name,
-        details: 'Lead excluído do sistema',
+  const handleDelete = async (lead: Lead) => {
+    try {
+      await removeLead(lead.id)
+      if (user) {
+        await addLog({
+          userId: user.id,
+          userName: user.name,
+          action: 'Excluir',
+          leadId: lead.id,
+          leadName: lead.name,
+          details: 'Lead excluído do sistema',
+        })
+      }
+      toast({
+        title: 'Lead excluído',
+        description: 'Lead excluído com sucesso.',
+      })
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir lead.',
       })
     }
-    toast({ title: 'Lead excluído', description: 'Lead excluído com sucesso.' })
   }
 
   const selectedTemplateObj = templates.find((t) => t.id === selectedTemplate)

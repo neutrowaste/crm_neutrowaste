@@ -1,6 +1,15 @@
-import { Bell, Search, User as UserIcon, MessageSquare } from 'lucide-react'
-import { Input } from './ui/input'
-import { Button } from './ui/button'
+import { Link } from 'react-router-dom'
+import {
+  Menu,
+  Bell,
+  Search,
+  User as UserIcon,
+  LogOut,
+  Moon,
+  Sun,
+  ShieldCheck,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,152 +17,158 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu'
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { useAuth } from '@/contexts/AuthContext'
+} from '@/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sidebar } from '@/components/Sidebar'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useLeads } from '@/contexts/LeadsContext'
-import { useChat } from '@/contexts/ChatContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Link } from 'react-router-dom'
-import { ThemeToggle } from './ThemeToggle'
+import { useTheme } from '@/components/ThemeProvider'
 
 export function Header() {
-  const { user, logout } = useAuth()
   const { notifications, markNotificationsAsRead } = useLeads()
-  const { getUnreadCount } = useChat()
+  const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
 
-  const systemUnreadCount = notifications.filter((n) => !n.read).length
-  const recentNotifications = notifications.slice(0, 5)
-
-  const chatUnreadCount = user ? getUnreadCount(user.id) : 0
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 md:px-8 pl-14 md:pl-8 transition-colors duration-300">
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative w-full max-w-sm hidden sm:block">
+    <header className="sticky top-0 z-30 flex h-16 w-full shrink-0 items-center justify-between border-b bg-background px-4 sm:px-6">
+      <div className="flex items-center gap-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle sidebar</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <Sidebar />
+          </SheetContent>
+        </Sheet>
+
+        <div className="hidden sm:flex relative w-64 lg:w-96">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar no sistema..."
-            className="w-full bg-muted/50 pl-9"
+            placeholder="Buscar..."
+            className="w-full bg-muted/50 pl-9 rounded-full focus-visible:ring-1"
           />
         </div>
       </div>
-      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 ml-auto">
-        <ThemeToggle />
 
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
-          className="relative rounded-full"
-          asChild
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="rounded-full"
         >
-          <Link to="/chat">
-            <MessageSquare className="h-5 w-5" />
-            {chatUnreadCount > 0 && (
-              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-background" />
-            )}
-          </Link>
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+          <span className="sr-only">Toggle theme</span>
         </Button>
 
-        <Popover
-          onOpenChange={(open) => {
-            if (open) markNotificationsAsRead()
-          }}
+        <DropdownMenu
+          onOpenChange={(open) => !open && markNotificationsAsRead()}
         >
-          <PopoverTrigger asChild>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               className="relative rounded-full"
             >
               <Bell className="h-5 w-5" />
-              {systemUnreadCount > 0 && (
-                <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white border-2 border-background">
-                  {systemUnreadCount > 9 ? '9+' : systemUnreadCount}
-                </span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive border border-background"></span>
               )}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
-            <div className="bg-muted/50 p-3 border-b">
-              <h4 className="font-semibold text-sm">Notificações do Sistema</h4>
-            </div>
-            <div className="max-h-[300px] overflow-y-auto p-3 space-y-3">
-              {recentNotifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhuma atividade recente.
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">Notificações</p>
+                <p className="text-xs text-muted-foreground">
+                  Você tem {unreadCount} mensagens não lidas
                 </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Nenhuma notificação.
+                </div>
               ) : (
-                recentNotifications.map((n) => (
+                notifications.slice(0, 10).map((n) => (
                   <div
                     key={n.id}
-                    className="flex flex-col gap-1 text-sm border-b pb-2 last:border-0 last:pb-0"
+                    className={`px-4 py-3 text-sm border-b last:border-0 ${!n.read ? 'bg-muted/50' : ''}`}
                   >
-                    <p
-                      className={`text-sm ${!n.read ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}
-                    >
-                      {n.message}
-                    </p>
-                    <span className="text-xs text-muted-foreground">
+                    <p className="font-medium">{n.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(n.createdAt), {
                         addSuffix: true,
                         locale: ptBR,
                       })}
-                    </span>
+                    </p>
                   </div>
                 ))
               )}
             </div>
-          </PopoverContent>
-        </Popover>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-2 px-2 hover:bg-muted rounded-full pl-2 pr-2 md:pr-4"
+              className="relative h-9 w-9 rounded-full ml-1"
             >
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-9 w-9 border">
                 <AvatarImage
                   src={`https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`}
                 />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {user?.name?.slice(0, 2).toUpperCase() || (
-                    <UserIcon className="h-4 w-4" />
-                  )}
+                <AvatarFallback>
+                  {user?.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden md:flex flex-col items-start text-sm">
-                <span className="font-medium leading-none mb-1">
-                  {user?.name}
-                </span>
-                <span className="text-xs text-muted-foreground leading-none">
-                  {user?.role}
-                </span>
-              </div>
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"></span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="text-sm font-medium leading-none flex items-center gap-1.5">
+                  {user?.name}
+                  {user?.role === 'Admin' && (
+                    <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground leading-none">
                   {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Perfil</DropdownMenuItem>
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/settings" className="cursor-pointer">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Perfil e Configurações</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-red-600 focus:bg-red-50 dark:focus:bg-red-950 focus:text-red-600 cursor-pointer"
               onClick={logout}
+              className="text-red-600 focus:text-red-600 cursor-pointer"
             >
-              Sair
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sair da conta</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

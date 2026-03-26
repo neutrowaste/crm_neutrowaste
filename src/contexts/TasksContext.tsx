@@ -6,6 +6,7 @@ import {
   ReactNode,
   useRef,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { sendBrowserNotification } from '@/lib/utils'
 
 export interface Task {
@@ -21,44 +22,42 @@ export interface Task {
 
 interface TasksContextType {
   tasks: Task[]
-  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void
-  updateTask: (id: string, task: Partial<Task>) => void
-  deleteTask: (id: string) => void
-  toggleComplete: (id: string) => void
+  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>
+  updateTask: (id: string, task: Partial<Task>) => Promise<void>
+  deleteTask: (id: string) => Promise<void>
+  toggleComplete: (id: string) => Promise<void>
 }
 
 const TasksContext = createContext<TasksContextType | undefined>(undefined)
 
-export function TasksProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:tasks')
-    if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 't1',
-        leadId: '1',
-        title: 'Ligação de acompanhamento',
-        dueDate: new Date().toISOString().split('T')[0],
-        time: '09:00',
-        description: 'Falar sobre a proposta',
-        completed: false,
-        createdAt: new Date().toISOString(),
-      },
-    ]
-  })
+const mapTask = (data: any): Task => ({
+  id: data.id,
+  leadId: data.lead_id,
+  title: data.title,
+  dueDate: data.due_date,
+  time: data.time,
+  description: data.description || undefined,
+  completed: data.completed,
+  createdAt: data.created_at,
+})
 
+export function TasksProvider({ children }: { children: ReactNode }) {
+  const [tasks, setTasks] = useState<Task[]>([])
   const notifiedTasks = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:tasks', JSON.stringify(tasks))
-  }, [tasks])
+    const fetchTasks = async () => {
+      const { data } = await supabase.from('tasks').select('*')
+      if (data) setTasks(data.map(mapTask))
+    }
+    fetchTasks()
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
       tasks.forEach((task) => {
         if (task.completed || notifiedTasks.current.has(task.id)) return
-
         try {
           const taskDate = new Date(`${task.dueDate}T${task.time}:00`)
           const diffMs = taskDate.getTime() - now.getTime()
@@ -70,40 +69,65 @@ export function TasksProvider({ children }: { children: ReactNode }) {
             })
             notifiedTasks.current.add(task.id)
           }
-        } catch (e) {
-          // Ignore parse errors
-        }
+        } catch (e) {}
       })
-    }, 60000) // Check every minute
+    }, 60000)
 
     return () => clearInterval(interval)
   }, [tasks])
 
-  const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
-    setTasks((prev) => [
-      ...prev,
-      {
-        ...task,
-        id: Math.random().toString(36).substring(2, 9),
-        createdAt: new Date().toISOString(),
-      },
-    ])
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        lead_id: task.leadId,
+        title: task.title,
+        due_date: task.dueDate,
+        time: task.time,
+        description: task.description,
+        completed: task.completed,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setTasks((prev) => [...prev, mapTask(data)])
+    }
   }
 
-  const updateTask = (id: string, taskData: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...taskData } : t)),
-    )
+  const updateTask = async (id: string, taskData: Partial<Task>) => {
+    const payload: any = {}
+    if (taskData.title !== undefined) payload.title = taskData.title
+    if (taskData.dueDate !== undefined) payload.due_date = taskData.dueDate
+    if (taskData.time !== undefined) payload.time = taskData.time
+    if (taskData.description !== undefined)
+      payload.description = taskData.description
+    if (taskData.completed !== undefined) payload.completed = taskData.completed
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      setTasks((prev) => prev.map((t) => (t.id === id ? mapTask(data) : t)))
+    }
   }
 
-  const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
+  const deleteTask = async (id: string) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', id)
+    if (!error) {
+      setTasks((prev) => prev.filter((t) => t.id !== id))
+    }
   }
 
-  const toggleComplete = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
-    )
+  const toggleComplete = async (id: string) => {
+    const task = tasks.find((t) => t.id === id)
+    if (task) {
+      await updateTask(id, { completed: !task.completed })
+    }
   }
 
   return (

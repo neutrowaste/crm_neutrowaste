@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 export interface Log {
   id: string
@@ -19,30 +20,56 @@ export interface Log {
 
 interface LogsContextType {
   logs: Log[]
-  addLog: (log: Omit<Log, 'id' | 'timestamp'>) => void
+  addLog: (log: Omit<Log, 'id' | 'timestamp'>) => Promise<void>
 }
 
 const LogsContext = createContext<LogsContextType | undefined>(undefined)
 
+const mapLog = (data: any): Log => ({
+  id: data.id,
+  userId: data.user_id || 'system',
+  userName: data.user_name,
+  action: data.action,
+  leadId: data.lead_id || '',
+  leadName: data.lead_name,
+  details: data.details,
+  timestamp: data.timestamp || data.created_at,
+})
+
 export function LogsProvider({ children }: { children: ReactNode }) {
-  const [logs, setLogs] = useState<Log[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:logs')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [logs, setLogs] = useState<Log[]>([])
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:logs', JSON.stringify(logs))
-  }, [logs])
+    const fetchLogs = async () => {
+      const { data } = await supabase
+        .from('logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+      if (data) setLogs(data.map(mapLog))
+    }
+    fetchLogs()
+  }, [])
 
-  const addLog = (log: Omit<Log, 'id' | 'timestamp'>) => {
-    setLogs((prev) => [
-      {
-        ...log,
-        id: Math.random().toString(36).substring(2, 9),
-        timestamp: new Date().toISOString(),
-      },
-      ...prev,
-    ])
+  const addLog = async (log: Omit<Log, 'id' | 'timestamp'>) => {
+    const { data, error } = await supabase
+      .from('logs')
+      .insert({
+        user_id:
+          log.userId !== 'system' && log.userId !== 'customer'
+            ? log.userId
+            : null,
+        user_name: log.userName,
+        action: log.action,
+        lead_id: log.leadId || null,
+        lead_name: log.leadName,
+        details: log.details,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setLogs((prev) => [mapLog(data), ...prev])
+    }
   }
 
   return (

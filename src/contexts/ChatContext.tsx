@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { sendBrowserNotification } from '@/lib/utils'
 
 export interface ChatMessage {
@@ -22,33 +23,67 @@ export interface ChatMessage {
 
 interface ChatContextType {
   messages: ChatMessage[]
-  sendMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp' | 'readBy'>) => void
-  markAllAsRead: (userId: string, channelId?: string) => void
+  sendMessage: (
+    msg: Omit<ChatMessage, 'id' | 'timestamp' | 'readBy'>,
+  ) => Promise<void>
+  markAllAsRead: (userId: string, channelId?: string) => Promise<void>
   getUnreadCount: (userId: string, channelId?: string) => number
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
+const mapMsg = (data: any): ChatMessage => ({
+  id: data.id,
+  userId: data.user_id,
+  userName: data.user_name,
+  text: data.text,
+  timestamp: data.timestamp,
+  leadId: data.lead_id || undefined,
+  readBy: data.read_by || [],
+  receiverId: data.receiver_id || undefined,
+  fileUrl: data.file_url || undefined,
+  fileName: data.file_name || undefined,
+})
+
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:chat')
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 'msg1',
-            userId: 'admin-1',
-            userName: 'Administrador',
-            text: 'Bem-vindos ao chat da equipe!',
-            timestamp: new Date().toISOString(),
-            readBy: ['admin-1'],
-          },
-        ]
-  })
+  const [messages, setMessages] = useState<ChatMessage[]>([])
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:chat', JSON.stringify(messages))
-  }, [messages])
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .order('timestamp', { ascending: true })
+      if (data) setMessages(data.map(mapMsg))
+    }
+    fetchMessages()
+
+    const channel = supabase
+      .channel('public:chat_messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const newMsg = mapMsg(payload.new)
+          setMessages((prev) => [...prev, newMsg])
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const updatedMsg = mapMsg(payload.new)
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const playNotificationSound = () => {
     try {
@@ -79,53 +114,53 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         osc2.start()
         osc2.stop(audioCtx.currentTime + 0.15)
       }, 150)
-    } catch (e) {
-      console.error("Audio API not supported or user hasn't interacted yet", e)
-    }
+    } catch (e) {}
   }
 
-  const sendMessage = (
+  const sendMessage = async (
     msg: Omit<ChatMessage, 'id' | 'timestamp' | 'readBy'>,
   ) => {
-    const newMsg: ChatMessage = {
-      ...msg,
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString(),
-      readBy: [msg.userId],
-    }
-    setMessages((prev) => [...prev, newMsg])
+    const { error } = await supabase.from('chat_messages').insert({
+      user_id: msg.userId,
+      user_name: msg.userName,
+      text: msg.text,
+      lead_id: msg.leadId,
+      receiver_id: msg.receiverId,
+      file_url: msg.fileUrl,
+      file_name: msg.fileName,
+      read_by: [msg.userId],
+    })
 
-    if (!msg.receiverId || msg.receiverId !== msg.userId) {
+    if (!error && (!msg.receiverId || msg.receiverId !== msg.userId)) {
       sendBrowserNotification(`Nova mensagem de ${msg.userName}`, {
         body: msg.fileUrl ? 'Enviou um arquivo' : msg.text,
       })
-
-      if (document.hidden) {
-        playNotificationSound()
-      }
+      if (document.hidden) playNotificationSound()
     }
   }
 
-  const markAllAsRead = (userId: string, channelId?: string) => {
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (!m.readBy.includes(userId)) {
-          if (channelId) {
-            const isGeneral = channelId === 'general' && !m.receiverId
-            const isDM =
-              channelId !== 'general' &&
-              (m.userId === channelId || m.receiverId === channelId)
+  const markAllAsRead = async (userId: string, channelId?: string) => {
+    const toUpdate = messages.filter((m) => {
+      const isUnread = !m.readBy.includes(userId)
+      if (!isUnread) return false
+      if (channelId) {
+        const isGeneral = channelId === 'general' && !m.receiverId
+        const isDM =
+          channelId !== 'general' &&
+          (m.userId === channelId || m.receiverId === channelId)
+        return isGeneral || isDM
+      }
+      return true
+    })
 
-            if (isGeneral || isDM) {
-              return { ...m, readBy: [...m.readBy, userId] }
-            }
-            return m
-          }
-          return { ...m, readBy: [...m.readBy, userId] }
-        }
-        return m
-      }),
-    )
+    for (const msg of toUpdate) {
+      await supabase
+        .from('chat_messages')
+        .update({
+          read_by: [...msg.readBy, userId],
+        })
+        .eq('id', msg.id)
+    }
   }
 
   const getUnreadCount = (userId: string, channelId?: string) => {

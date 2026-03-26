@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { calculateLeadScore, sendBrowserNotification } from '@/lib/utils'
 
 export interface Lead {
@@ -34,96 +35,66 @@ export interface Notification {
 interface LeadsContextType {
   leads: Lead[]
   notifications: Notification[]
-  addLead: (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => string
-  updateLead: (id: string, lead: Partial<Lead>) => void
-  removeLead: (id: string) => void
+  addLead: (
+    lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>,
+  ) => Promise<string>
+  updateLead: (id: string, lead: Partial<Lead>) => Promise<void>
+  removeLead: (id: string) => Promise<void>
   markNotificationsAsRead: () => void
   addNotification: (message: string) => void
 }
 
-const mockLeads: Lead[] = [
-  {
-    id: '1',
-    name: 'Ana Oliveira',
-    company: 'Tech Solutions',
-    email: 'ana@techsolutions.com',
-    phone: '11999999999',
-    status: 'Qualificado',
-    source: 'Site',
-    value: 15000,
-    assignedTo: 'admin-1',
-    createdAt: '2024-03-20T10:00:00Z',
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Carlos Santos',
-    company: 'Global Innovations',
-    email: 'carlos@globalinnovations.com',
-    phone: '11988888888',
-    status: 'Novo',
-    source: 'Indicação',
-    value: 8000,
-    assignedTo: 'seller-1',
-    createdAt: '2024-03-21T14:30:00Z',
-    updatedAt: '2024-03-21T14:30:00Z',
-  },
-  {
-    id: '3',
-    name: 'Mariana Costa',
-    company: 'Agile Systems',
-    email: 'mariana@agilesystems.com',
-    status: 'Proposta',
-    source: 'Ligação',
-    value: 25000,
-    assignedTo: 'seller-1',
-    createdAt: '2024-03-18T09:15:00Z',
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Roberto Almeida',
-    company: 'NexGen Corp',
-    email: 'roberto@nexgen.com',
-    phone: '21977777777',
-    status: 'Contatado',
-    source: 'Evento',
-    value: 12000,
-    assignedTo: 'admin-1',
-    createdAt: '2024-03-22T11:45:00Z',
-    updatedAt: '2024-03-22T11:45:00Z',
-  },
-  {
-    id: '5',
-    name: 'Fernanda Lima',
-    company: 'DataTech',
-    email: 'fernanda@datatech.com',
-    phone: '31966666666',
-    status: 'Ganho',
-    source: 'Site',
-    value: 45000,
-    assignedTo: 'admin-1',
-    createdAt: '2024-03-15T16:20:00Z',
-    updatedAt: '2024-03-15T16:20:00Z',
-  },
-]
-
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
 
-export function LeadsProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:leads')
-    return saved ? JSON.parse(saved) : mockLeads
-  })
+const mapLead = (data: any): Lead => ({
+  id: data.id,
+  name: data.name,
+  company: data.company,
+  email: data.email,
+  phone: data.phone || undefined,
+  status: data.status,
+  source: data.source,
+  value: data.value,
+  industry: data.industry || undefined,
+  notes: data.notes || undefined,
+  assignedTo: data.assigned_to || undefined,
+  lastFollowUp: data.last_follow_up || undefined,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+})
 
+export function LeadsProvider({ children }: { children: ReactNode }) {
+  const [leads, setLeads] = useState<Lead[]>([])
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem('@neutrowaste:notifications')
     return saved ? JSON.parse(saved) : []
   })
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:leads', JSON.stringify(leads))
-  }, [leads])
+    const fetchLeads = async () => {
+      const { data } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (data) setLeads(data.map(mapLead))
+    }
+    fetchLeads()
+
+    const channel = supabase
+      .channel('public:leads')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        (payload) => {
+          fetchLeads()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(
@@ -146,74 +117,92 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
   }
 
-  const addLead = (newLead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const id = Math.random().toString(36).substr(2, 9)
-    const lead: Lead = {
-      ...newLead,
-      id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    setLeads((prev) => [lead, ...prev])
-    addNotification(`Novo lead: ${lead.name} cadastrado`)
-
-    const score = calculateLeadScore(lead)
-    if (score >= 80) {
-      sendBrowserNotification('🚀 Lead Quente!', {
-        body: `O lead ${lead.name} foi criado com score alto (${score})!`,
+  const addLead = async (
+    newLead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<string> => {
+    const { data, error } = await supabase
+      .from('leads')
+      .insert({
+        name: newLead.name,
+        company: newLead.company,
+        email: newLead.email,
+        phone: newLead.phone,
+        status: newLead.status,
+        source: newLead.source,
+        value: newLead.value,
+        industry: newLead.industry,
+        notes: newLead.notes,
+        assigned_to: newLead.assignedTo,
       })
-      addNotification(
-        `Atenção: Novo lead ${lead.name} com Score Alto (${score})`,
-      )
-    }
+      .select()
+      .single()
 
-    return id
-  }
+    if (error) throw error
+    if (data) {
+      const lead = mapLead(data)
+      setLeads((prev) => [lead, ...prev])
+      addNotification(`Novo lead: ${lead.name} cadastrado`)
 
-  const updateLead = (id: string, updatedData: Partial<Lead>) => {
-    setLeads((prev) =>
-      prev.map((lead) => {
-        if (lead.id === id) {
-          const updatedLead = {
-            ...lead,
-            ...updatedData,
-            updatedAt: new Date().toISOString(),
-          }
-
-          if (updatedData.status && lead.status !== updatedData.status) {
-            addNotification(
-              `Status do lead ${lead.name} alterado para ${updatedData.status}`,
-            )
-          }
-
-          const oldScore = calculateLeadScore(lead)
-          const newScore = calculateLeadScore(updatedLead)
-
-          if (oldScore < 80 && newScore >= 80) {
-            sendBrowserNotification('🔥 Lead Aqueceu!', {
-              body: `O lead ${lead.name} atingiu um score alto (${newScore})!`,
-            })
-            addNotification(
-              `Lead ${lead.name} atingiu Score Alto (${newScore})!`,
-            )
-          }
-
-          return updatedLead
-        }
-        return lead
-      }),
-    )
-  }
-
-  const removeLead = (id: string) => {
-    setLeads((prev) => {
-      const leadToRemove = prev.find((l) => l.id === id)
-      if (leadToRemove) {
-        addNotification(`Lead ${leadToRemove.name} foi removido`)
+      const score = calculateLeadScore(lead)
+      if (score >= 80) {
+        sendBrowserNotification('🚀 Lead Quente!', {
+          body: `O lead ${lead.name} foi criado com score alto (${score})!`,
+        })
+        addNotification(
+          `Atenção: Novo lead ${lead.name} com Score Alto (${score})`,
+        )
       }
-      return prev.filter((lead) => lead.id !== id)
-    })
+      return lead.id
+    }
+    return ''
+  }
+
+  const updateLead = async (id: string, updatedData: Partial<Lead>) => {
+    const payload: any = {}
+    if (updatedData.name !== undefined) payload.name = updatedData.name
+    if (updatedData.company !== undefined) payload.company = updatedData.company
+    if (updatedData.email !== undefined) payload.email = updatedData.email
+    if (updatedData.phone !== undefined) payload.phone = updatedData.phone
+    if (updatedData.status !== undefined) payload.status = updatedData.status
+    if (updatedData.source !== undefined) payload.source = updatedData.source
+    if (updatedData.value !== undefined) payload.value = updatedData.value
+    if (updatedData.industry !== undefined)
+      payload.industry = updatedData.industry
+    if (updatedData.notes !== undefined) payload.notes = updatedData.notes
+    if (updatedData.assignedTo !== undefined)
+      payload.assigned_to = updatedData.assignedTo
+    if (updatedData.lastFollowUp !== undefined)
+      payload.last_follow_up = updatedData.lastFollowUp
+
+    payload.updated_at = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('leads')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (data) {
+      const lead = mapLead(data)
+      setLeads((prev) => prev.map((l) => (l.id === id ? lead : l)))
+
+      if (updatedData.status) {
+        addNotification(`Status do lead ${lead.name} alterado`)
+      }
+    }
+  }
+
+  const removeLead = async (id: string) => {
+    const leadToRemove = leads.find((l) => l.id === id)
+    const { error } = await supabase.from('leads').delete().eq('id', id)
+    if (error) throw error
+
+    if (leadToRemove) {
+      addNotification(`Lead ${leadToRemove.name} foi removido`)
+    }
+    setLeads((prev) => prev.filter((lead) => lead.id !== id))
   }
 
   return (

@@ -58,7 +58,7 @@ export default function KanbanPage() {
     e.preventDefault()
   }
 
-  const handleDrop = (e: React.DragEvent, columnId: string) => {
+  const handleDrop = async (e: React.DragEvent, columnId: string) => {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('leadId')
     if (!leadId) return
@@ -70,11 +70,10 @@ export default function KanbanPage() {
 
     const lead = leads.find((l) => l.id === leadId)
     if (lead && lead.status !== newStatus) {
-      updateLead(leadId, { status: newStatus as any })
+      await updateLead(leadId, { status: newStatus as any })
 
-      // Audit Log for movement
       if (user) {
-        addLog({
+        await addLog({
           userId: user.id,
           userName: user.name,
           action: 'Atualizar Kanban',
@@ -84,9 +83,8 @@ export default function KanbanPage() {
         })
       }
 
-      // Automation Triggers
       if (newStatus === 'Proposta' && emailOnProposal && user) {
-        addLog({
+        await addLog({
           userId: 'system',
           userName: 'Automação do Sistema',
           action: 'E-mail Automático',
@@ -101,7 +99,7 @@ export default function KanbanPage() {
       }
 
       if (newStatus === 'Ganho' && taskOnWon && user) {
-        addTask({
+        await addTask({
           leadId: lead.id,
           title: `Onboarding de ${lead.company}`,
           dueDate: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
@@ -110,7 +108,7 @@ export default function KanbanPage() {
             'Apresentação inicial de boas-vindas gerada automaticamente.',
           completed: false,
         })
-        addLog({
+        await addLog({
           userId: 'system',
           userName: 'Automação do Sistema',
           action: 'Tarefa Automática',
@@ -126,13 +124,13 @@ export default function KanbanPage() {
     }
   }
 
-  const handleSendFollowUp = () => {
+  const handleSendFollowUp = async () => {
     if (!followUpLead) return
 
     const now = new Date().toISOString()
-    updateLead(followUpLead.id, { lastFollowUp: now })
+    await updateLead(followUpLead.id, { lastFollowUp: now })
     if (user) {
-      addLog({
+      await addLog({
         userId: user.id,
         userName: user.name,
         action: 'Follow-up',

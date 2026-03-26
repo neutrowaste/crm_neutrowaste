@@ -65,20 +65,24 @@ export default function NewLead() {
     },
   })
 
-  const onSubmit = (data: LeadFormValues) => {
-    const newId = addLead(data)
-    if (user) {
-      addLog({
-        userId: user.id,
-        userName: user.name,
-        action: 'Criar',
-        leadId: newId,
-        leadName: data.name,
-        details: 'Lead cadastrado no sistema',
-      })
+  const onSubmit = async (data: LeadFormValues) => {
+    try {
+      const newId = await addLead(data)
+      if (user) {
+        await addLog({
+          userId: user.id,
+          userName: user.name,
+          action: 'Criar',
+          leadId: newId,
+          leadName: data.name,
+          details: 'Lead cadastrado no sistema',
+        })
+      }
+      toast({ title: 'Sucesso!', description: 'Lead cadastrado com sucesso!' })
+      navigate('/leads')
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: e.message })
     }
-    toast({ title: 'Sucesso!', description: 'Lead cadastrado com sucesso!' })
-    navigate('/leads')
   }
 
   return (

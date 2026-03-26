@@ -114,10 +114,10 @@ export default function EditLead() {
 
   if (!lead) return <div className="p-8">Lead não encontrado.</div>
 
-  const onSubmit = (data: z.infer<typeof leadSchema>) => {
-    updateLead(id!, data)
+  const onSubmit = async (data: z.infer<typeof leadSchema>) => {
+    await updateLead(id!, data)
     if (user) {
-      addLog({
+      await addLog({
         userId: user.id,
         userName: user.name,
         action: 'Atualizar',
@@ -129,10 +129,10 @@ export default function EditLead() {
     toast({ title: 'Sucesso', description: 'Lead atualizado com sucesso!' })
   }
 
-  const handleUploadContract = () => {
+  const handleUploadContract = async () => {
     if (!newContractName.trim() || !user) return
 
-    addContract({
+    await addContract({
       leadId: lead.id,
       name: newContractName,
       status: 'Draft',
@@ -141,7 +141,7 @@ export default function EditLead() {
       fileUrl: '#',
     })
 
-    addLog({
+    await addLog({
       userId: user.id,
       userName: user.name,
       action: 'Criar',
@@ -155,15 +155,15 @@ export default function EditLead() {
     setIsUploadOpen(false)
   }
 
-  const handleStatusChange = (
+  const handleStatusChange = async (
     contractId: string,
     status: ContractStatus,
     contractName: string,
   ) => {
     if (!user) return
-    updateContractStatus(contractId, status)
+    await updateContractStatus(contractId, status)
 
-    addLog({
+    await addLog({
       userId: user.id,
       userName: user.name,
       action: 'Atualizar',
@@ -176,7 +176,7 @@ export default function EditLead() {
       const portalLink = `${window.location.origin}/portal/${contractId}`
       const emailBody = `Olá ${lead.name},\n\nO documento "${contractName}" da empresa ${lead.company} está pronto para sua assinatura.\n\nAcesse o portal seguro para revisar e assinar: ${portalLink}`
 
-      addLog({
+      await addLog({
         userId: 'system',
         userName: 'Sistema Automático',
         action: 'Email Enviado',
@@ -191,8 +191,8 @@ export default function EditLead() {
           'O link de assinatura do portal foi enviado ao cliente por e-mail.',
       })
     } else if (status === 'Signed' && lead.status !== 'Ganho') {
-      updateLead(lead.id, { status: 'Ganho' })
-      addLog({
+      await updateLead(lead.id, { status: 'Ganho' })
+      await addLog({
         userId: user.id,
         userName: user.name,
         action: 'Atualizar',
@@ -212,10 +212,13 @@ export default function EditLead() {
     }
   }
 
-  const handleDeleteContract = (contractId: string, contractName: string) => {
+  const handleDeleteContract = async (
+    contractId: string,
+    contractName: string,
+  ) => {
     if (!user) return
-    deleteContract(contractId)
-    addLog({
+    await deleteContract(contractId)
+    await addLog({
       userId: user.id,
       userName: user.name,
       action: 'Excluir',

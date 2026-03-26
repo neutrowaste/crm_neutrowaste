@@ -28,15 +28,18 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Edit, Trash, Mail, MessageCircle } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Templates() {
   const { templates, addTemplate, updateTemplate, deleteTemplate } =
     useTemplates()
   const { waTemplates, addWaTemplate, updateWaTemplate, deleteWaTemplate } =
     useWhatsApp()
+  const { toast } = useToast()
 
   const [activeTab, setActiveTab] = useState('email')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -58,15 +61,30 @@ export default function Templates() {
     setIsDialogOpen(true)
   }
 
-  const handleSave = () => {
-    if (activeTab === 'email') {
-      if (editingId) updateTemplate(editingId, { name, subject, body })
-      else addTemplate({ name, subject, body })
-    } else {
-      if (editingId) updateWaTemplate(editingId, { name, text: body })
-      else addWaTemplate({ name, text: body })
+  const handleSave = async () => {
+    setIsProcessing(true)
+    try {
+      if (activeTab === 'email') {
+        if (editingId) await updateTemplate(editingId, { name, subject, body })
+        else await addTemplate({ name, subject, body })
+      } else {
+        if (editingId) await updateWaTemplate(editingId, { name, text: body })
+        else await addWaTemplate({ name, text: body })
+      }
+      toast({
+        title: 'Sucesso',
+        description: 'Modelo salvo com sucesso.',
+      })
+      setIsDialogOpen(false)
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: e.message || 'Erro ao salvar modelo.',
+      })
+    } finally {
+      setIsProcessing(false)
     }
-    setIsDialogOpen(false)
   }
 
   return (
@@ -267,6 +285,7 @@ export default function Templates() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Apresentação Inicial"
+                disabled={isProcessing}
               />
             </div>
             {activeTab === 'email' && (
@@ -276,6 +295,7 @@ export default function Templates() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Apresentação para {{company_name}}"
+                  disabled={isProcessing}
                 />
               </div>
             )}
@@ -286,6 +306,7 @@ export default function Templates() {
                 onChange={(e) => setBody(e.target.value)}
                 className="min-h-[150px]"
                 placeholder={`Olá {{contact_name}}...`}
+                disabled={isProcessing}
               />
             </div>
           </div>
@@ -294,13 +315,19 @@ export default function Templates() {
               variant="outline"
               className="w-full sm:w-auto"
               onClick={() => setIsDialogOpen(false)}
+              disabled={isProcessing}
             >
               Cancelar
             </Button>
             <Button
               className="w-full sm:w-auto"
               onClick={handleSave}
-              disabled={!name || !body || (activeTab === 'email' && !subject)}
+              disabled={
+                !name ||
+                !body ||
+                (activeTab === 'email' && !subject) ||
+                isProcessing
+              }
             >
               Salvar Modelo
             </Button>

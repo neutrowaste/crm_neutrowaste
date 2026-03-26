@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 export interface WhatsAppTemplate {
   id: string
@@ -14,9 +15,9 @@ export interface WhatsAppTemplate {
 
 interface WhatsAppContextType {
   waTemplates: WhatsAppTemplate[]
-  addWaTemplate: (t: Omit<WhatsAppTemplate, 'id'>) => void
-  updateWaTemplate: (id: string, t: Partial<WhatsAppTemplate>) => void
-  deleteWaTemplate: (id: string) => void
+  addWaTemplate: (t: Omit<WhatsAppTemplate, 'id'>) => Promise<void>
+  updateWaTemplate: (id: string, t: Partial<WhatsAppTemplate>) => Promise<void>
+  deleteWaTemplate: (id: string) => Promise<void>
 }
 
 const WhatsAppContext = createContext<WhatsAppContextType | undefined>(
@@ -24,45 +25,51 @@ const WhatsAppContext = createContext<WhatsAppContextType | undefined>(
 )
 
 export function WhatsAppProvider({ children }: { children: ReactNode }) {
-  const [waTemplates, setWaTemplates] = useState<WhatsAppTemplate[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:watemplates')
-    if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 'wa1',
-        name: 'Primeiro Contato (Abordagem)',
-        text: 'Olá {{lead_name}}, tudo bem? Sou da Neutrowaste e vi que a {{company_name}} está buscando otimizar sua gestão de resíduos. Podemos agendar um bate-papo rápido?',
-      },
-      {
-        id: 'wa2',
-        name: 'Acompanhamento (Follow-up)',
-        text: 'Oi {{lead_name}}, passando para saber se você conseguiu analisar a proposta que enviamos para a {{company_name}}. Qualquer dúvida estou à disposição!',
-      },
-    ]
-  })
+  const [waTemplates, setWaTemplates] = useState<WhatsAppTemplate[]>([])
 
   useEffect(() => {
-    localStorage.setItem(
-      '@neutrowaste:watemplates',
-      JSON.stringify(waTemplates),
-    )
-  }, [waTemplates])
+    const fetchTemplates = async () => {
+      const { data } = await supabase.from('whatsapp_templates').select('*')
+      if (data) setWaTemplates(data as WhatsAppTemplate[])
+    }
+    fetchTemplates()
+  }, [])
 
-  const addWaTemplate = (t: Omit<WhatsAppTemplate, 'id'>) => {
-    setWaTemplates((prev) => [
-      ...prev,
-      { ...t, id: Math.random().toString(36).substring(2, 9) },
-    ])
+  const addWaTemplate = async (t: Omit<WhatsAppTemplate, 'id'>) => {
+    const { data, error } = await supabase
+      .from('whatsapp_templates')
+      .insert(t)
+      .select()
+      .single()
+
+    if (!error && data) {
+      setWaTemplates((prev) => [...prev, data as WhatsAppTemplate])
+    }
   }
 
-  const updateWaTemplate = (id: string, t: Partial<WhatsAppTemplate>) => {
-    setWaTemplates((prev) =>
-      prev.map((tmpl) => (tmpl.id === id ? { ...tmpl, ...t } : tmpl)),
-    )
+  const updateWaTemplate = async (id: string, t: Partial<WhatsAppTemplate>) => {
+    const { data, error } = await supabase
+      .from('whatsapp_templates')
+      .update(t)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      setWaTemplates((prev) =>
+        prev.map((tmpl) => (tmpl.id === id ? data : tmpl)),
+      )
+    }
   }
 
-  const deleteWaTemplate = (id: string) => {
-    setWaTemplates((prev) => prev.filter((tmpl) => tmpl.id !== id))
+  const deleteWaTemplate = async (id: string) => {
+    const { error } = await supabase
+      .from('whatsapp_templates')
+      .delete()
+      .eq('id', id)
+    if (!error) {
+      setWaTemplates((prev) => prev.filter((tmpl) => tmpl.id !== id))
+    }
   }
 
   return (

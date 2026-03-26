@@ -142,29 +142,27 @@ export default function Login() {
     }
   }
 
-  const handleMfaSubmit = () => {
+  const handleMfaSubmit = async () => {
     if (mfaCode.length !== 6) {
       toast({ variant: 'destructive', description: 'Código inválido.' })
       return
     }
 
     setIsLoading(true)
-    setTimeout(() => {
-      if (pendingUser) {
-        finalizeLogin(pendingUser)
-        navigate('/dashboard')
-      }
-      setIsLoading(false)
-    }, 1000)
+    if (pendingUser) {
+      await finalizeLogin(pendingUser)
+      navigate('/dashboard')
+    }
+    setIsLoading(false)
   }
 
-  const fillMock = (role: 'admin' | 'seller') => {
-    if (role === 'admin') {
+  const fillMock = (role: 'admin1' | 'admin2') => {
+    if (role === 'admin1') {
+      form.setValue('email', 'hugo.valle@neutrowaste.com')
+      form.setValue('password', 'securepassword123')
+    } else {
       form.setValue('email', 'admin@neutrowaste.com')
       form.setValue('password', 'admin123')
-    } else {
-      form.setValue('email', 'vendedor@neutrowaste.com')
-      form.setValue('password', 'vendedor123')
     }
   }
 
@@ -241,7 +239,7 @@ export default function Login() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Login Seguro</CardTitle>
+            <CardTitle>Login Seguro (Supabase)</CardTitle>
           </CardHeader>
           <CardContent>
             {lockoutUntil && Date.now() < lockoutUntil ? (
@@ -315,23 +313,22 @@ export default function Login() {
                 </div>
                 <div className="ml-3 flex-1 md:flex md:justify-between">
                   <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                    Contas de teste:
+                    Contas de teste Supabase:
                   </p>
-                  <p className="mt-3 text-sm md:ml-6 md:mt-0">
+                  <p className="mt-3 text-sm md:ml-6 md:mt-0 flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => fillMock('admin')}
-                      className="whitespace-nowrap font-medium text-blue-700 dark:text-blue-300 hover:underline"
+                      onClick={() => fillMock('admin1')}
+                      className="whitespace-nowrap font-medium text-blue-700 dark:text-blue-300 hover:underline text-left"
                     >
-                      Admin
+                      Admin (Hugo)
                     </button>
-                    <span className="mx-2 text-blue-300">|</span>
                     <button
                       type="button"
-                      onClick={() => fillMock('seller')}
-                      className="whitespace-nowrap font-medium text-blue-700 dark:text-blue-300 hover:underline"
+                      onClick={() => fillMock('admin2')}
+                      className="whitespace-nowrap font-medium text-blue-700 dark:text-blue-300 hover:underline text-left"
                     >
-                      Vendedor
+                      Admin (Padrão)
                     </button>
                   </p>
                 </div>

@@ -1,168 +1,117 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useLeads } from '@/contexts/LeadsContext'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
-import { useMemo } from 'react'
+import { useContracts } from '@/contexts/ContractsContext'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Trophy, TrendingUp, AlertCircle } from 'lucide-react'
 
 export function TeamPerformance() {
   const { allUsers } = useAuth()
   const { leads } = useLeads()
+  const { contracts } = useContracts()
 
-  const stats = useMemo(() => {
-    return allUsers
-      .map((user) => {
-        const userLeads = leads.filter((l) => l.assignedTo === user.id)
-        const totalAssigned = userLeads.length
-        const wonLeads = userLeads.filter((l) => l.status === 'Ganho').length
-        const conversionRate = totalAssigned
-          ? Math.round((wonLeads / totalAssigned) * 100)
-          : 0
+  const performance = allUsers.map((u) => {
+    const userLeads = leads.filter((l) => l.assignedTo === u.id)
+    const wonLeads = userLeads.filter((l) => l.status === 'Ganho')
+    const userContracts = contracts.filter((c) => c.uploadedBy === u.id)
+    const signedContracts = userContracts.filter((c) => c.status === 'Signed')
 
-        const pipelineValue = userLeads
-          .filter((l) =>
-            ['Novo', 'Contatado', 'Qualificado', 'Proposta'].includes(l.status),
-          )
-          .reduce((sum, l) => sum + (l.value || 0), 0)
+    const totalValue = wonLeads.reduce((acc, l) => acc + (l.value || 0), 0)
+    const conversionRate =
+      userLeads.length > 0
+        ? Math.round((wonLeads.length / userLeads.length) * 100)
+        : 0
 
-        return {
-          id: user.id,
-          name: user.name,
-          totalAssigned,
-          conversionRate,
-          pipelineValue,
-          wonLeads,
-        }
-      })
-      .sort((a, b) => b.pipelineValue - a.pipelineValue)
-  }, [allUsers, leads])
+    return {
+      user: u,
+      activeLeads: userLeads.length,
+      won: wonLeads.length,
+      signed: signedContracts.length,
+      totalValue,
+      conversionRate,
+    }
+  })
 
-  const chartData = stats
-    .filter((s) => s.pipelineValue > 0)
-    .map((s, index) => ({
-      name: s.name,
-      value: s.pipelineValue,
-      fill: `hsl(var(--primary) / ${1 - index * 0.15})`,
-    }))
+  const sortedPerformance = performance.sort((a, b) => b.won - a.won)
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>KPIs da Equipe</CardTitle>
-              <CardDescription>
-                Métricas de vendas por colaborador
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto -mx-6 sm:mx-0">
-                <div className="min-w-[500px] px-6 sm:px-0">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead>Vendedor</TableHead>
-                        <TableHead className="text-right">
-                          Leads Atribuídos
-                        </TableHead>
-                        <TableHead className="text-right">
-                          Conversão (%)
-                        </TableHead>
-                        <TableHead className="text-right">
-                          Valor Pipeline
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {stats.map((userStat) => (
-                        <TableRow
-                          key={userStat.id}
-                          className="hover:bg-muted/30"
-                        >
-                          <TableCell className="font-medium whitespace-nowrap">
-                            {userStat.name}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {userStat.totalAssigned}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {userStat.conversionRate}%
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-primary">
-                            {new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(userStat.pipelineValue)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-yellow-500" />
+          Ranking de Vendas
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {sortedPerformance.map((p, index) => (
+            <div
+              key={p.user.id}
+              className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50"
+            >
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                    <AvatarImage
+                      src={`https://img.usecurling.com/ppl/thumbnail?seed=${p.user.id}`}
+                    />
+                    <AvatarFallback>
+                      {p.user.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {index === 0 && (
+                    <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-1 shadow-md">
+                      <Trophy className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                  {p.user.isOnline && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{p.user.name}</p>
+                  <p className="text-sm text-muted-foreground">{p.user.role}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-6">
+                <div className="text-center hidden sm:block">
+                  <p className="text-sm text-muted-foreground">Conversão</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <TrendingUp
+                      className={`h-3 w-3 ${p.conversionRate > 20 ? 'text-green-500' : 'text-red-500'}`}
+                    />
+                    <p className="font-medium">{p.conversionRate}%</p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Leads Ganhos</p>
+                  <Badge variant="secondary" className="font-bold px-3">
+                    {p.won}
+                  </Badge>
+                </div>
+                <div className="text-right w-24">
+                  <p className="text-sm text-muted-foreground">Receita</p>
+                  <p className="font-bold text-primary text-sm">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      maximumFractionDigits: 0,
+                    }).format(p.totalValue)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {sortedPerformance.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              Nenhum dado de performance disponível.
+            </div>
+          )}
         </div>
-        <div>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Distribuição do Pipeline</CardTitle>
-              <CardDescription>Valor em aberto por vendedor</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Nenhum dado de pipeline.
-                </p>
-              ) : (
-                <ChartContainer
-                  config={{ value: { label: 'Pipeline' } }}
-                  className="h-[300px] w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label={false}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

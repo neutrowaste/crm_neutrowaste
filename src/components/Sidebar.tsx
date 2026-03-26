@@ -4,131 +4,84 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  MessageSquare,
   BarChart3,
   Settings,
-  Menu,
-  DollarSign,
-  MessageSquare,
-  FileArchive,
-  Kanban,
-  Zap,
   ShieldAlert,
+  Kanban,
+  FileText,
+  Mail,
+  Zap,
 } from 'lucide-react'
-import { Button } from './ui/button'
-import { useState } from 'react'
+import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
-import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 
-const getNavigation = (role: string) => {
-  const baseNav = [
-    { name: 'Painel', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Kanban', href: '/kanban', icon: Kanban },
-    { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'Agenda', href: '/calendar', icon: Calendar },
-    { name: 'Chat da Equipe', href: '/chat', icon: MessageSquare },
-    { name: 'Relatórios', href: '/reports', icon: BarChart3 },
-  ]
-
-  if (role === 'Admin') {
-    baseNav.push({
-      name: 'Relatórios Financeiros',
-      href: '/financial-reports',
-      icon: DollarSign,
-    })
-    baseNav.push({
-      name: 'Automações',
-      href: '/automations',
-      icon: Zap,
-    })
-    baseNav.push({
-      name: 'Logs de Auditoria',
-      href: '/logs',
-      icon: ShieldAlert,
-    })
-  }
-
-  baseNav.push({
-    name: 'Modelos / Templates',
-    href: '/templates',
-    icon: FileArchive,
-  })
-  baseNav.push({ name: 'Configurações', href: '/settings', icon: Settings })
-
-  return baseNav
-}
+const defaultNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Kanban', href: '/kanban', icon: Kanban },
+  { name: 'Leads', href: '/leads', icon: Users },
+  { name: 'Contratos', href: '/contracts', icon: FileText },
+  { name: 'Agenda', href: '/calendar', icon: Calendar },
+  { name: 'Chat', href: '/chat', icon: MessageSquare },
+  { name: 'Relatórios', href: '/reports', icon: BarChart3 },
+  { name: 'Modelos', href: '/templates', icon: Mail },
+]
 
 export function Sidebar() {
   const location = useLocation()
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
   const { user } = useAuth()
   const { getUnreadCount } = useChat()
 
-  const navigation = getNavigation(user?.role || 'Seller')
-  const unreadChatMsgs = user ? getUnreadCount(user.id) : 0
+  const navigation = [...defaultNavigation]
+  if (user?.role === 'Admin') {
+    navigation.push(
+      { name: 'Gatilhos', href: '/automations', icon: Zap },
+      { name: 'Auditoria', href: '/logs', icon: ShieldAlert },
+      { name: 'Configurações', href: '/settings', icon: Settings },
+    )
+  }
+
+  const unreadCount = user ? getUnreadCount(user.id) : 0
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed left-4 top-3 z-50 md:hidden print:hidden"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
-      <div
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 transform border-r bg-background transition-transform duration-200 ease-in-out md:translate-x-0 flex flex-col print:hidden',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-      >
-        <div className="flex h-16 shrink-0 items-center px-6 border-b">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <img
-              src={logoImg}
-              alt="Neutrowaste Logo"
-              className="h-8 object-contain dark:brightness-200 dark:contrast-200"
-            />
-          </Link>
-        </div>
-
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+    <div className="hidden md:flex flex-col w-64 bg-card border-r h-screen fixed left-0 top-0 pt-4 z-10 print:hidden">
+      <div className="flex h-16 shrink-0 items-center px-6">
+        <img
+          src={logoImg}
+          alt="Neutrowaste Logo"
+          className="h-8 object-contain dark:brightness-200 dark:contrast-200"
+        />
+      </div>
+      <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
+        <nav className="flex-1 space-y-1 px-3">
           {navigation.map((item) => {
-            const isActive =
-              location.pathname === item.href ||
-              (item.href !== '/dashboard' &&
-                location.pathname.startsWith(item.href))
-            const Icon = item.icon
-            const isChat = item.href === '/chat'
-
+            const isActive = location.pathname.startsWith(item.href)
             return (
               <Link
                 key={item.name}
                 to={item.href}
-                onClick={() => setIsMobileOpen(false)}
                 className={cn(
-                  'flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  'group flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors relative',
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={cn(
-                      'h-4 w-4',
-                      isActive
-                        ? 'text-primary-foreground'
-                        : 'text-muted-foreground',
-                    )}
-                  />
-                  {item.name}
-                </div>
-                {isChat && unreadChatMsgs > 0 && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
-                    {unreadChatMsgs}
+                <item.icon
+                  className={cn(
+                    isActive
+                      ? 'text-primary'
+                      : 'text-muted-foreground group-hover:text-foreground',
+                    'mr-3 flex-shrink-0 h-5 w-5 transition-colors',
+                  )}
+                  aria-hidden="true"
+                />
+                {item.name}
+
+                {item.name === 'Chat' && unreadCount > 0 && (
+                  <span className="absolute right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    {unreadCount}
                   </span>
                 )}
               </Link>
@@ -136,13 +89,6 @@ export function Sidebar() {
           })}
         </nav>
       </div>
-
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden backdrop-blur-sm print:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-    </>
+    </div>
   )
 }

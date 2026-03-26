@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 export interface EmailTemplate {
   id: string
@@ -15,9 +16,9 @@ export interface EmailTemplate {
 
 interface TemplatesContextType {
   templates: EmailTemplate[]
-  addTemplate: (t: Omit<EmailTemplate, 'id'>) => void
-  updateTemplate: (id: string, t: Partial<EmailTemplate>) => void
-  deleteTemplate: (id: string) => void
+  addTemplate: (t: Omit<EmailTemplate, 'id'>) => Promise<void>
+  updateTemplate: (id: string, t: Partial<EmailTemplate>) => Promise<void>
+  deleteTemplate: (id: string) => Promise<void>
 }
 
 const TemplatesContext = createContext<TemplatesContextType | undefined>(
@@ -25,38 +26,53 @@ const TemplatesContext = createContext<TemplatesContextType | undefined>(
 )
 
 export function TemplatesProvider({ children }: { children: ReactNode }) {
-  const [templates, setTemplates] = useState<EmailTemplate[]>(() => {
-    const saved = localStorage.getItem('@neutrowaste:templates')
-    if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 'tmpl1',
-        name: 'Apresentação Neutrowaste',
-        subject: 'Apresentação da Neutrowaste para {{company_name}}',
-        body: 'Olá {{contact_name}},\n\nSomos da Neutrowaste. Gostaríamos de conversar sobre como podemos otimizar a gestão de resíduos da {{company_name}} e gerar economia.\n\nQualquer dúvida, estou à disposição.\n\nAtenciosamente.',
-      },
-    ]
-  })
+  const [templates, setTemplates] = useState<EmailTemplate[]>([])
 
   useEffect(() => {
-    localStorage.setItem('@neutrowaste:templates', JSON.stringify(templates))
-  }, [templates])
+    const fetchTemplates = async () => {
+      const { data } = await supabase.from('email_templates').select('*')
+      if (data) setTemplates(data as EmailTemplate[])
+    }
+    fetchTemplates()
+  }, [])
 
-  const addTemplate = (t: Omit<EmailTemplate, 'id'>) => {
-    setTemplates((prev) => [
-      ...prev,
-      { ...t, id: Math.random().toString(36).substring(2, 9) },
-    ])
+  const addTemplate = async (t: Omit<EmailTemplate, 'id'>) => {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .insert({
+        name: t.name,
+        subject: t.subject,
+        body: t.body,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setTemplates((prev) => [...prev, data as EmailTemplate])
+    }
   }
 
-  const updateTemplate = (id: string, t: Partial<EmailTemplate>) => {
-    setTemplates((prev) =>
-      prev.map((tpl) => (tmpl.id === id ? { ...tpl, ...t } : tpl)),
-    )
+  const updateTemplate = async (id: string, t: Partial<EmailTemplate>) => {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .update(t)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      setTemplates((prev) => prev.map((tpl) => (tpl.id === id ? data : tpl)))
+    }
   }
 
-  const deleteTemplate = (id: string) => {
-    setTemplates((prev) => prev.filter((tpl) => tpl.id !== id))
+  const deleteTemplate = async (id: string) => {
+    const { error } = await supabase
+      .from('email_templates')
+      .delete()
+      .eq('id', id)
+    if (!error) {
+      setTemplates((prev) => prev.filter((tpl) => tpl.id !== id))
+    }
   }
 
   return (
