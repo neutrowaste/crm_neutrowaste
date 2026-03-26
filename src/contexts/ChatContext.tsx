@@ -15,13 +15,14 @@ export interface ChatMessage {
   timestamp: string
   leadId?: string
   readBy: string[]
+  receiverId?: string
 }
 
 interface ChatContextType {
   messages: ChatMessage[]
   sendMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp' | 'readBy'>) => void
-  markAllAsRead: (userId: string) => void
-  getUnreadCount: (userId: string) => number
+  markAllAsRead: (userId: string, channelId?: string) => void
+  getUnreadCount: (userId: string, channelId?: string) => number
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -59,15 +60,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, newMsg])
 
     // Simulate push notification for others
-    sendBrowserNotification(`Nova mensagem de ${msg.userName}`, {
-      body: msg.text,
-    })
+    if (!msg.receiverId || msg.receiverId !== msg.userId) {
+      sendBrowserNotification(`Nova mensagem de ${msg.userName}`, {
+        body: msg.text,
+      })
+    }
   }
 
-  const markAllAsRead = (userId: string) => {
+  const markAllAsRead = (userId: string, channelId?: string) => {
     setMessages((prev) =>
       prev.map((m) => {
         if (!m.readBy.includes(userId)) {
+          if (channelId) {
+            const isGeneral = channelId === 'general' && !m.receiverId
+            const isDM =
+              channelId !== 'general' &&
+              (m.userId === channelId || m.receiverId === channelId)
+
+            if (isGeneral || isDM) {
+              return { ...m, readBy: [...m.readBy, userId] }
+            }
+            return m
+          }
           return { ...m, readBy: [...m.readBy, userId] }
         }
         return m
@@ -75,8 +89,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const getUnreadCount = (userId: string) => {
-    return messages.filter((m) => !m.readBy.includes(userId)).length
+  const getUnreadCount = (userId: string, channelId?: string) => {
+    return messages.filter((m) => {
+      const isUnread = !m.readBy.includes(userId)
+      if (!isUnread) return false
+
+      if (channelId) {
+        if (channelId === 'general') return !m.receiverId
+        return m.userId === channelId || m.receiverId === channelId
+      }
+
+      // If no channel specified, just count messages directed to me or general
+      return !m.receiverId || m.receiverId === userId
+    }).length
   }
 
   return (

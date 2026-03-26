@@ -16,6 +16,7 @@ import ResetPassword from '@/pages/ResetPassword'
 import ChatPage from '@/pages/Chat'
 import ContractsPage from '@/pages/Contracts'
 import Portal from '@/pages/Portal'
+import Reports from '@/pages/Reports'
 import { LeadsProvider } from '@/contexts/LeadsContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LogsProvider } from '@/contexts/LogsContext'
@@ -73,13 +74,10 @@ function App() {
                           <Route path="calendar" element={<CalendarPage />} />
                           <Route path="kanban" element={<KanbanPage />} />
                           <Route path="chat" element={<ChatPage />} />
+                          <Route path="reports" element={<Reports />} />
                           <Route path="logs" element={<LogsPage />} />
                           <Route path="templates" element={<TemplatesPage />} />
                           <Route path="contracts" element={<ContractsPage />} />
-                          <Route
-                            path="reports"
-                            element={<PlaceholderPage title="Relatórios" />}
-                          />
                           <Route
                             path="financial-reports"
                             element={
