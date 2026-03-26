@@ -47,12 +47,14 @@ export default function ForgotPassword() {
   const onSubmit = async (data: ForgotFormValues) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+      const email = data.email.trim()
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
       if (error) {
-        throw new Error(error.message)
+        throw error // Lança o erro original para capturarmos os detalhes no catch
       }
 
       // Log para auditoria de disparo de e-mail
@@ -60,20 +62,42 @@ export default function ForgotPassword() {
         .from('logs')
         .insert({
           action: 'Recuperação de Senha',
-          details: `Solicitação de redefinição de senha enviada para: ${data.email}`,
+          details: `Solicitação de redefinição de senha enviada para: ${email}`,
           lead_name: 'Sistema',
-          user_name: data.email,
+          user_name: email,
         })
         .catch(console.error)
 
-      setSubmittedEmail(data.email)
+      setSubmittedEmail(email)
       setIsSuccess(true)
     } catch (error: any) {
+      console.error('Erro detalhado na recuperação de senha:', error)
+
+      let errorMessage =
+        'Não foi possível enviar o e-mail de recuperação. Tente novamente mais tarde.'
+
+      if (error?.message) {
+        const msg = error.message.toLowerCase()
+        if (
+          msg.includes('rate limit') ||
+          msg.includes('60 seconds') ||
+          error.status === 429
+        ) {
+          errorMessage =
+            'Por motivos de segurança, aguarde cerca de 1 minuto antes de solicitar um novo envio.'
+        } else if (msg.includes('not allowed') || msg.includes('redirect')) {
+          errorMessage =
+            'Configuração de URL inválida no servidor. Contate o suporte técnico.'
+        } else {
+          // Exibe a mensagem original do Supabase para ajudar no diagnóstico
+          errorMessage = `Falha reportada pelo servidor: ${error.message}`
+        }
+      }
+
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description:
-          'Não foi possível enviar o e-mail de recuperação. Tente novamente mais tarde.',
+        title: 'Erro ao enviar e-mail',
+        description: errorMessage,
       })
     } finally {
       setIsLoading(false)
