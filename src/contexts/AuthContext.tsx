@@ -149,7 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           'E-mail não confirmado. Verifique sua caixa de entrada ou contate o administrador.',
         )
       }
-      throw new Error('E-mail ou senha inválidos.')
+      if (msg.includes('invalid login credentials')) {
+        throw new Error('E-mail ou senha inválidos.')
+      }
+      throw new Error(error.message)
     }
 
     if (data.user) {

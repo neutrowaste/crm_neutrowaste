@@ -128,11 +128,21 @@ export default function Login() {
           title: 'Acesso Negado',
           description: error.message,
         })
+      } else if (
+        msg.includes('smtp') ||
+        msg.includes('sender') ||
+        msg.includes('provider')
+      ) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Configuração SMTP',
+          description: `Falha reportada pelo servidor: ${error.message}`,
+        })
       } else {
         toast({
           variant: 'destructive',
           title: 'Erro ao entrar',
-          description: error.message,
+          description: `Falha reportada pelo servidor: ${error.message}`,
         })
       }
     } finally {
