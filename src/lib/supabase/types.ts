@@ -11,10 +11,125 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.1'
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          file_name: string | null
+          file_url: string | null
+          id: string
+          lead_id: string | null
+          read_by: string[] | null
+          receiver_id: string | null
+          text: string
+          timestamp: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          lead_id?: string | null
+          read_by?: string[] | null
+          receiver_id?: string | null
+          text: string
+          timestamp?: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          lead_id?: string | null
+          read_by?: string[] | null
+          receiver_id?: string | null
+          text?: string
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          file_url: string | null
+          id: string
+          lead_id: string
+          name: string
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          file_url?: string | null
+          id?: string
+          lead_id: string
+          name: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          file_url?: string | null
+          id?: string
+          lead_id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentacoes: {
         Row: {
           analise: string | null
@@ -42,6 +157,222 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          name: string
+          subject: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          name: string
+          subject: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company: string
+          created_at: string
+          email: string
+          id: string
+          industry: string | null
+          last_follow_up: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string
+          status: string
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company: string
+          created_at?: string
+          email: string
+          id?: string
+          industry?: string | null
+          last_follow_up?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string | null
+          last_follow_up?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logs: {
+        Row: {
+          action: string
+          details: string
+          id: string
+          lead_id: string | null
+          lead_name: string
+          timestamp: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          action: string
+          details: string
+          id?: string
+          lead_id?: string | null
+          lead_name: string
+          timestamp?: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          action?: string
+          details?: string
+          id?: string
+          lead_id?: string | null
+          lead_name?: string
+          timestamp?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_online: boolean | null
+          name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          is_online?: boolean | null
+          name: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_online?: boolean | null
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          lead_id: string | null
+          time: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          lead_id?: string | null
+          time: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          lead_id?: string | null
+          time?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          text?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -58,33 +389,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -93,23 +424,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -118,23 +449,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -143,36 +474,36 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
@@ -180,6 +511,7 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -191,6 +523,28 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: chat_messages
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (nullable)
+//   user_name: text (not null)
+//   text: text (not null)
+//   lead_id: uuid (nullable)
+//   receiver_id: uuid (nullable)
+//   file_url: text (nullable)
+//   file_name: text (nullable)
+//   read_by: _text (nullable, default: '{}'::text[])
+//   timestamp: timestamp with time zone (not null, default: now())
+// Table: contracts
+//   id: uuid (not null, default: gen_random_uuid())
+//   lead_id: uuid (not null)
+//   name: text (not null)
+//   status: text (not null, default: 'Draft'::text)
+//   uploaded_by: uuid (nullable)
+//   uploaded_by_name: text (nullable)
+//   file_url: text (nullable)
+//   expires_at: timestamp with time zone (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
 // Table: documentacoes
 //   id: uuid (not null, default: gen_random_uuid())
 //   titulo: text (not null)
@@ -198,12 +552,99 @@ export const Constants = {
 //   analise: text (nullable)
 //   status: text (nullable, default: 'pendente'::text)
 //   created_at: timestamp with time zone (nullable, default: now())
+// Table: email_templates
+//   id: uuid (not null, default: gen_random_uuid())
+//   name: text (not null)
+//   subject: text (not null)
+//   body: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
+// Table: leads
+//   id: uuid (not null, default: gen_random_uuid())
+//   name: text (not null)
+//   company: text (not null)
+//   email: text (not null)
+//   phone: text (nullable)
+//   status: text (not null, default: 'Novo'::text)
+//   source: text (not null, default: 'Site'::text)
+//   value: numeric (nullable, default: 0)
+//   industry: text (nullable)
+//   notes: text (nullable)
+//   assigned_to: uuid (nullable)
+//   last_follow_up: timestamp with time zone (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
+// Table: logs
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: text (nullable)
+//   user_name: text (not null)
+//   action: text (not null)
+//   lead_id: uuid (nullable)
+//   lead_name: text (not null)
+//   details: text (not null)
+//   timestamp: timestamp with time zone (not null, default: now())
+// Table: profiles
+//   id: uuid (not null)
+//   name: text (not null)
+//   email: text (not null)
+//   role: text (not null, default: 'Seller'::text)
+//   is_online: boolean (nullable, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
+//   updated_at: timestamp with time zone (not null, default: now())
+// Table: tasks
+//   id: uuid (not null, default: gen_random_uuid())
+//   lead_id: uuid (nullable)
+//   title: text (not null)
+//   due_date: text (not null)
+//   time: text (not null)
+//   description: text (nullable)
+//   completed: boolean (not null, default: false)
+//   created_at: timestamp with time zone (not null, default: now())
+// Table: whatsapp_templates
+//   id: uuid (not null, default: gen_random_uuid())
+//   name: text (not null)
+//   text: text (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
+// Table: chat_messages
+//   FOREIGN KEY chat_messages_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL
+//   PRIMARY KEY chat_messages_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY chat_messages_receiver_id_fkey: FOREIGN KEY (receiver_id) REFERENCES profiles(id) ON DELETE CASCADE
+//   FOREIGN KEY chat_messages_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+// Table: contracts
+//   FOREIGN KEY contracts_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
+//   PRIMARY KEY contracts_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY contracts_uploaded_by_fkey: FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE SET NULL
 // Table: documentacoes
 //   PRIMARY KEY documentacoes_pkey: PRIMARY KEY (id)
+// Table: email_templates
+//   PRIMARY KEY email_templates_pkey: PRIMARY KEY (id)
+// Table: leads
+//   FOREIGN KEY leads_assigned_to_fkey: FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE SET NULL
+//   PRIMARY KEY leads_pkey: PRIMARY KEY (id)
+// Table: logs
+//   FOREIGN KEY logs_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
+//   PRIMARY KEY logs_pkey: PRIMARY KEY (id)
+// Table: profiles
+//   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+//   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+// Table: tasks
+//   FOREIGN KEY tasks_lead_id_fkey: FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
+//   PRIMARY KEY tasks_pkey: PRIMARY KEY (id)
+// Table: whatsapp_templates
+//   PRIMARY KEY whatsapp_templates_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: chat_messages
+//   Policy "Allow authenticated chat_messages" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: contracts
+//   Policy "Allow authenticated full contracts" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "Allow public read contracts" (SELECT, PERMISSIVE) roles={public}
+//     USING: true
 // Table: documentacoes
 //   Policy "Allow authenticated users to delete" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -213,8 +654,51 @@ export const Constants = {
 //     USING: true
 //   Policy "Allow authenticated users to update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
+// Table: email_templates
+//   Policy "Allow authenticated email_templates" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: leads
+//   Policy "Allow authenticated full leads" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: logs
+//   Policy "Allow authenticated public read/insert logs" (ALL, PERMISSIVE) roles={public}
+//     USING: true
+//     WITH CHECK: true
+// Table: profiles
+//   Policy "Allow authenticated read profiles" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
+//   Policy "Allow update own profile" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (id = auth.uid())
+// Table: tasks
+//   Policy "Allow authenticated tasks" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: whatsapp_templates
+//   Policy "Allow authenticated whatsapp_templates" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION handle_new_user()
+//   CREATE OR REPLACE FUNCTION public.handle_new_user()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     INSERT INTO public.profiles (id, name, email, role)
+//     VALUES (
+//       NEW.id,
+//       COALESCE(NEW.raw_user_meta_data->>'name', 'Usuário'),
+//       NEW.email,
+//       COALESCE(NEW.raw_user_meta_data->>'role', 'Seller')
+//     ) ON CONFLICT (id) DO NOTHING;
+//     RETURN NEW;
+//   END;
+//   $function$
+//   
 // FUNCTION trigger_n8n_webhook()
 //   CREATE OR REPLACE FUNCTION public.trigger_n8n_webhook()
 //    RETURNS trigger
@@ -234,8 +718,9 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 
 // --- TRIGGERS ---
 // Table: documentacoes
 //   neutro_webhook: CREATE TRIGGER neutro_webhook AFTER INSERT ON public.documentacoes FOR EACH ROW EXECUTE FUNCTION trigger_n8n_webhook()
+
