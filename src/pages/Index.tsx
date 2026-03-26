@@ -3,6 +3,7 @@ import { Metrics } from '@/components/dashboard/Metrics'
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel'
 import { TaskSchedule } from '@/components/dashboard/TaskSchedule'
 import { TeamPerformance } from '@/components/dashboard/TeamPerformance'
+import { PendingSignatures } from '@/components/dashboard/PendingSignatures'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Download, Users } from 'lucide-react'
@@ -45,8 +46,9 @@ export default function Index() {
               <SalesFunnel />
               <InteractionHistory />
             </div>
-            <div className="print:hidden">
+            <div className="space-y-8 print:hidden">
               <TaskSchedule />
+              <PendingSignatures />
             </div>
           </div>
         </TabsContent>
