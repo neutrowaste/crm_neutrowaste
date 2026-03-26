@@ -10,6 +10,7 @@ import LogsPage from '@/pages/Logs'
 import TemplatesPage from '@/pages/Templates'
 import AutomationsPage from '@/pages/Automations'
 import PlaceholderPage from '@/pages/PlaceholderPage'
+import SettingsPage from '@/pages/Settings'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ForgotPassword from '@/pages/ForgotPassword'
@@ -100,15 +101,13 @@ function App() {
                                 element={<ContractsPage />}
                               />
                               <Route
+                                path="settings"
+                                element={<SettingsPage />}
+                              />
+                              <Route
                                 path="financial-reports"
                                 element={
                                   <PlaceholderPage title="Relatórios Financeiros" />
-                                }
-                              />
-                              <Route
-                                path="settings"
-                                element={
-                                  <PlaceholderPage title="Configurações Gerais" />
                                 }
                               />
                             </Route>
