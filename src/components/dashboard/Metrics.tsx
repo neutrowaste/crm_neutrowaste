@@ -1,49 +1,75 @@
-import { Users, FileText, CalendarPlus } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLeads } from '@/contexts/LeadsContext'
+import { Users, Target, TrendingUp, DollarSign } from 'lucide-react'
 
 export function Metrics() {
   const { leads } = useLeads()
 
   const totalLeads = leads.length
-  const activeProposals = leads.filter((l) => l.status === 'Proposal').length
+  const activeOpportunities = leads.filter((l) =>
+    ['Novo', 'Contatado', 'Qualificado', 'Proposta'].includes(l.status),
+  ).length
+  const wonLeads = leads.filter((l) => l.status === 'Ganho').length
+  const conversionRate = totalLeads
+    ? Math.round((wonLeads / totalLeads) * 100)
+    : 0
+  const expectedValue = leads.reduce((acc, lead) => acc + (lead.value || 0), 0)
 
-  const oneWeekAgo = new Date()
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-  const newThisWeek = leads.filter((l) => l.createdAt >= oneWeekAgo).length
+  const metrics = [
+    {
+      title: 'Total de Leads',
+      value: totalLeads.toString(),
+      icon: Users,
+      trend: '+12% em relação ao mês passado',
+      trendUp: true,
+    },
+    {
+      title: 'Oportunidades Ativas',
+      value: activeOpportunities.toString(),
+      icon: Target,
+      trend: '+4 novas esta semana',
+      trendUp: true,
+    },
+    {
+      title: 'Taxa de Conversão',
+      value: `${conversionRate}%`,
+      icon: TrendingUp,
+      trend: '+2% em relação ao mês passado',
+      trendUp: true,
+    },
+    {
+      title: 'Receita Esperada',
+      value: new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(expectedValue),
+      icon: DollarSign,
+      trend: 'Baseado em leads qualificados',
+      trendUp: true,
+    },
+  ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
-        <div className="bg-blue-50 p-4 rounded-xl">
-          <Users className="w-6 h-6 text-blue-600" />
-        </div>
-        <div>
-          <p className="text-sm text-gray-500 font-medium">Total Leads</p>
-          <p className="text-3xl font-bold text-gray-900">{totalLeads}</p>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
-        <div className="bg-purple-50 p-4 rounded-xl">
-          <FileText className="w-6 h-6 text-purple-600" />
-        </div>
-        <div>
-          <p className="text-sm text-gray-500 font-medium">Active Proposals</p>
-          <p className="text-3xl font-bold text-gray-900">{activeProposals}</p>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
-        <div className="bg-green-50 p-4 rounded-xl">
-          <CalendarPlus className="w-6 h-6 text-green-600" />
-        </div>
-        <div>
-          <p className="text-sm text-gray-500 font-medium">
-            New Leads this Week
-          </p>
-          <p className="text-3xl font-bold text-gray-900">{newThisWeek}</p>
-        </div>
-      </div>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {metrics.map((metric) => {
+        const Icon = metric.icon
+        return (
+          <Card key={metric.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {metric.title}
+              </CardTitle>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metric.value}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {metric.trend}
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

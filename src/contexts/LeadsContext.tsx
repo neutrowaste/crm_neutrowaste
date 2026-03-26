@@ -1,74 +1,91 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
-
-export type LeadStatus = 'Prospect' | 'Qualified' | 'Proposal' | 'Closed'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface Lead {
   id: string
+  name: string
   company: string
-  industry: string
-  contact: string
   email: string
-  phone: string
-  source: string
-  status: LeadStatus
-  createdAt: Date
+  phone?: string
+  status: 'Novo' | 'Contatado' | 'Qualificado' | 'Proposta' | 'Ganho'
+  source: 'Site' | 'Indicação' | 'Ligação' | 'Evento'
+  value?: number
+  industry?: string
+  notes?: string
+  createdAt: string
 }
 
 interface LeadsContextType {
   leads: Lead[]
   addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => void
   updateLead: (id: string, lead: Partial<Lead>) => void
-  deleteLead: (id: string) => void
+  removeLead: (id: string) => void
 }
 
-const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
-
-const initialLeads: Lead[] = [
+const mockLeads: Lead[] = [
   {
     id: '1',
-    company: 'Green Future Mfg',
-    industry: 'Manufacturing',
-    contact: 'Robert Plant',
-    email: 'robert@greenfuture.com',
-    phone: '(555) 123-4567',
-    source: 'Website',
-    status: 'Prospect',
-    createdAt: new Date(Date.now() - 86400000 * 2),
+    name: 'Ana Oliveira',
+    company: 'Tech Solutions',
+    email: 'ana@techsolutions.com',
+    status: 'Qualificado',
+    source: 'Site',
+    value: 15000,
+    createdAt: '2024-03-20T10:00:00Z',
   },
   {
     id: '2',
-    company: 'City Waste Dept',
-    industry: 'Government',
-    contact: 'Leslie Knope',
-    email: 'lknope@pawnee.gov',
-    phone: '(555) 987-6543',
-    source: 'Referral',
-    status: 'Proposal',
-    createdAt: new Date(Date.now() - 86400000 * 5),
+    name: 'Carlos Santos',
+    company: 'Global Innovations',
+    email: 'carlos@globalinnovations.com',
+    status: 'Novo',
+    source: 'Indicação',
+    value: 8000,
+    createdAt: '2024-03-21T14:30:00Z',
   },
   {
     id: '3',
-    company: 'EcoDine Restaurants',
-    industry: 'Hospitality',
-    contact: 'Gordon Ramsey',
-    email: 'gramsey@ecodine.com',
-    phone: '(555) 555-5555',
-    source: 'Trade Show',
-    status: 'Qualified',
-    createdAt: new Date(Date.now() - 86400000 * 10),
+    name: 'Mariana Costa',
+    company: 'Agile Systems',
+    email: 'mariana@agilesystems.com',
+    status: 'Proposta',
+    source: 'Ligação',
+    value: 25000,
+    createdAt: '2024-03-18T09:15:00Z',
+  },
+  {
+    id: '4',
+    name: 'Roberto Almeida',
+    company: 'NexGen Corp',
+    email: 'roberto@nexgen.com',
+    status: 'Contatado',
+    source: 'Evento',
+    value: 12000,
+    createdAt: '2024-03-22T11:45:00Z',
+  },
+  {
+    id: '5',
+    name: 'Fernanda Lima',
+    company: 'DataTech',
+    email: 'fernanda@datatech.com',
+    status: 'Ganho',
+    source: 'Site',
+    value: 45000,
+    createdAt: '2024-03-15T16:20:00Z',
   },
 ]
 
-export function LeadsProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads)
+const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
 
-  const addLead = (leadData: Omit<Lead, 'id' | 'createdAt'>) => {
-    const newLead: Lead = {
-      ...leadData,
+export function LeadsProvider({ children }: { children: ReactNode }) {
+  const [leads, setLeads] = useState<Lead[]>(mockLeads)
+
+  const addLead = (newLead: Omit<Lead, 'id' | 'createdAt'>) => {
+    const lead: Lead = {
+      ...newLead,
       id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     }
-    setLeads((prev) => [newLead, ...prev])
+    setLeads((prev) => [lead, ...prev])
   }
 
   const updateLead = (id: string, updatedData: Partial<Lead>) => {
@@ -77,12 +94,12 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const deleteLead = (id: string) => {
+  const removeLead = (id: string) => {
     setLeads((prev) => prev.filter((lead) => lead.id !== id))
   }
 
   return (
-    <LeadsContext.Provider value={{ leads, addLead, updateLead, deleteLead }}>
+    <LeadsContext.Provider value={{ leads, addLead, updateLead, removeLead }}>
       {children}
     </LeadsContext.Provider>
   )

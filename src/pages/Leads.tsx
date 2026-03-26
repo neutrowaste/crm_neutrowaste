@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useLeads, LeadStatus } from '@/contexts/LeadsContext'
-import { Badge } from '@/components/ui/badge'
+import { Link } from 'react-router-dom'
+import { useLeads } from '@/contexts/LeadsContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Edit2, Eye, Plus } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import {
   Table,
   TableBody,
@@ -13,114 +11,189 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Plus, Search, MoreHorizontal, Edit, Trash } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
+const statusColors = {
+  Novo: 'bg-blue-100 text-blue-800',
+  Contatado: 'bg-yellow-100 text-yellow-800',
+  Qualificado: 'bg-purple-100 text-purple-800',
+  Proposta: 'bg-orange-100 text-orange-800',
+  Ganho: 'bg-green-100 text-green-800',
+}
 
 export default function Leads() {
-  const { leads } = useLeads()
-  const [search, setSearch] = useState('')
+  const { leads, removeLead } = useLeads()
+  const { toast } = useToast()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('all')
 
-  const filteredLeads = leads.filter(
-    (l) =>
-      l.company.toLowerCase().includes(search.toLowerCase()) ||
-      l.contact.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch =
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.company.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
+    const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter
 
-  const getStatusColor = (status: LeadStatus) => {
-    switch (status) {
-      case 'Prospect':
-        return 'bg-gray-100 text-gray-700 border-gray-200'
-      case 'Qualified':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-      case 'Proposal':
-        return 'bg-purple-100 text-purple-700 border-purple-200'
-      case 'Closed':
-        return 'bg-green-100 text-green-700 border-green-200'
-    }
+    return matchesSearch && matchesStatus && matchesSource
+  })
+
+  const handleDelete = (id: string) => {
+    removeLead(id)
+    toast({
+      title: 'Lead excluído',
+      description: 'Lead excluído com sucesso.',
+    })
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Leads List</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Leads
+          </h1>
           <p className="text-muted-foreground">
-            Manage your B2B prospects and clients.
+            Gerencie seus leads e oportunidades de vendas.
           </p>
         </div>
-        <Link to="/leads/new">
-          <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6">
-            <Plus className="w-4 h-4 mr-2" /> Register New Lead
-          </Button>
-        </Link>
+        <Button asChild>
+          <Link to="/leads/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Lead
+          </Link>
+        </Button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by company or contact..."
-              className="pl-9 bg-gray-50 border-gray-200"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou empresa..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <div className="flex gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="Novo">Novo</SelectItem>
+              <SelectItem value="Contatado">Contatado</SelectItem>
+              <SelectItem value="Qualificado">Qualificado</SelectItem>
+              <SelectItem value="Proposta">Proposta</SelectItem>
+              <SelectItem value="Ganho">Ganho</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Origens</SelectItem>
+              <SelectItem value="Site">Site</SelectItem>
+              <SelectItem value="Indicação">Indicação</SelectItem>
+              <SelectItem value="Ligação">Ligação</SelectItem>
+              <SelectItem value="Evento">Evento</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
+      <div className="rounded-md border bg-white overflow-x-auto">
         <Table>
-          <TableHeader className="bg-gray-50">
+          <TableHeader>
             <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Data de Criação</TableHead>
+              <TableHead className="w-[50px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
-                  className="text-center py-8 text-gray-500"
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
                 >
-                  No leads found.
+                  Nenhum lead encontrado.
                 </TableCell>
               </TableRow>
             ) : (
               filteredLeads.map((lead) => (
                 <TableRow key={lead.id}>
-                  <TableCell className="font-medium text-gray-900">
-                    {lead.company}
-                  </TableCell>
-                  <TableCell>{lead.contact}</TableCell>
-                  <TableCell className="text-gray-500 hidden md:table-cell">
-                    {lead.email}
-                  </TableCell>
+                  <TableCell className="font-medium">{lead.name}</TableCell>
+                  <TableCell>{lead.company}</TableCell>
                   <TableCell>
                     <Badge
-                      variant="outline"
-                      className={getStatusColor(lead.status)}
+                      variant="secondary"
+                      className={
+                        statusColors[lead.status as keyof typeof statusColors]
+                      }
                     >
                       {lead.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-blue-600"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-green-600"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <TableCell>{lead.source}</TableCell>
+                  <TableCell>
+                    {lead.value
+                      ? new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(lead.value)
+                      : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(lead.createdAt), 'dd MMM yyyy', {
+                      locale: ptBR,
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-red-600 focus:bg-red-50 focus:text-red-600"
+                          onClick={() => handleDelete(lead.id)}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
