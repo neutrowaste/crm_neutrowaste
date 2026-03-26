@@ -14,21 +14,10 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { Loader2, Info, ShieldCheck, AlertTriangle } from 'lucide-react'
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp'
+import { Loader2, Info } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -41,7 +30,7 @@ const MAX_ATTEMPTS = 5
 const LOCKOUT_MINUTES = 15
 
 export default function Login() {
-  const { loginStep1, loginStep2 } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -49,11 +38,6 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
-
-  const [showMfa, setShowMfa] = useState(false)
-  const [mfaCode, setMfaCode] = useState('')
-  const [pendingEmail, setPendingEmail] = useState<string>('')
-  const [smtpError, setSmtpError] = useState(false)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -123,36 +107,19 @@ export default function Login() {
     }
 
     setIsLoading(true)
-    setSmtpError(false)
 
     try {
-      const { bypassed } = await loginStep1(data.email, data.password)
+      await login(data.email, data.password)
       setFailedAttempts(0)
       localStorage.removeItem('loginAttempts')
 
-      if (bypassed) {
-        toast({
-          title: 'Acesso Liberado (Modo Teste)',
-          description:
-            'A verificação em duas etapas foi ignorada devido a erro de configuração de SMTP.',
-        })
-        navigate('/dashboard')
-      } else {
-        setPendingEmail(data.email)
-        setShowMfa(true)
-
-        toast({
-          title: 'Verificação Necessária',
-          description: 'Um código de segurança foi enviado para seu e-mail.',
-        })
-      }
+      toast({
+        title: 'Login bem-sucedido',
+        description: 'Redirecionando...',
+      })
+      navigate('/dashboard')
     } catch (error: any) {
       if (
-        error.message?.toLowerCase().includes('smtp') ||
-        error.message?.toLowerCase().includes('v.from')
-      ) {
-        setSmtpError(true)
-      } else if (
         error.message?.includes('inválidos') ||
         error.message?.includes('inválida')
       ) {
@@ -160,34 +127,10 @@ export default function Login() {
       } else {
         toast({
           variant: 'destructive',
-          title: 'Erro',
+          title: 'Erro ao entrar',
           description: error.message,
         })
       }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleMfaSubmit = async () => {
-    if (mfaCode.length !== 6) {
-      toast({
-        variant: 'destructive',
-        description: 'O código deve ter 6 dígitos.',
-      })
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await loginStep2(pendingEmail, mfaCode)
-      navigate('/dashboard')
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Falha na verificação',
-        description: error.message,
-      })
     } finally {
       setIsLoading(false)
     }
@@ -201,63 +144,6 @@ export default function Login() {
       form.setValue('email', 'admin@neutrowaste.com')
       form.setValue('password', 'admin123')
     }
-  }
-
-  if (showMfa) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4 py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <ShieldCheck className="w-6 h-6 text-primary" />
-            </div>
-            <CardTitle>Autenticação em Duas Etapas</CardTitle>
-            <CardDescription>
-              Digite o código de 6 dígitos que enviamos para <br />
-              <span className="font-medium text-foreground">
-                {pendingEmail}
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 flex flex-col items-center">
-            <InputOTP
-              maxLength={6}
-              value={mfaCode}
-              onChange={setMfaCode}
-              disabled={isLoading}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-            <Button
-              className="w-full"
-              onClick={handleMfaSubmit}
-              disabled={mfaCode.length !== 6 || isLoading}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verificar e Entrar
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setShowMfa(false)}
-              disabled={isLoading}
-            >
-              Voltar
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Verifique também sua caixa de spam ou lixo eletrônico.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -282,48 +168,6 @@ export default function Login() {
             <CardTitle>Login Seguro</CardTitle>
           </CardHeader>
           <CardContent>
-            {smtpError && (
-              <div className="mb-6 rounded-md bg-destructive/10 p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2">
-                <div className="flex">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <AlertTriangle
-                      className="h-5 w-5 text-destructive"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-semibold text-destructive">
-                      Erro de Configuração SMTP
-                    </h3>
-                    <div className="mt-2 text-sm text-destructive/90 space-y-2">
-                      <p>
-                        O provedor de e-mail bloqueou o envio de verificação. O
-                        erro indica que o <strong>e-mail de remetente</strong>{' '}
-                        configurado no painel é inválido.
-                      </p>
-                      <p className="font-medium">
-                        Solução para o Administrador:
-                      </p>
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li>Acesse o painel do Supabase.</li>
-                        <li>
-                          Vá em{' '}
-                          <strong>
-                            Authentication &gt; Providers &gt; Email
-                          </strong>
-                          .
-                        </li>
-                        <li>
-                          Verifique e corrija as configurações de SMTP
-                          personalizado.
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {lockoutUntil && Date.now() < lockoutUntil ? (
               <div className="p-4 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 rounded-md text-sm text-center font-medium">
                 Conta temporariamente bloqueada. Tente novamente mais tarde.
