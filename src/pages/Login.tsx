@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -29,6 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -39,6 +40,16 @@ export default function Login() {
       password: '',
     },
   })
+
+  useEffect(() => {
+    if (location.state?.message) {
+      toast({
+        title: 'Aviso de Segurança',
+        description: location.state.message,
+      })
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state, navigate, toast])
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
