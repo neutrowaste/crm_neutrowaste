@@ -3,7 +3,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { LeadsProvider } from '@/contexts/LeadsContext'
 
-export default function Layout() {
+export function Layout() {
   return (
     <LeadsProvider>
       <div className="flex min-h-screen bg-gray-50/50 relative overflow-x-hidden">
