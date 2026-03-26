@@ -1,54 +1,69 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLeads } from '@/contexts/LeadsContext'
-import { Users, Target, TrendingUp, DollarSign } from 'lucide-react'
+import { useContracts } from '@/contexts/ContractsContext'
+import { FileText, Percent, Clock, DollarSign } from 'lucide-react'
 
 export function Metrics() {
   const { leads } = useLeads()
+  const { contracts } = useContracts()
 
-  const totalLeads = leads.length
+  const totalContracts = contracts.length
 
-  const openLeads = leads.filter((l) =>
-    ['Novo', 'Contatado'].includes(l.status),
+  const signedContracts = contracts.filter((c) => c.status === 'Signed').length
+
+  const conversionRate =
+    totalContracts > 0
+      ? Math.round((signedContracts / totalContracts) * 100)
+      : 0
+
+  const pendingSignatures = contracts.filter(
+    (c) => c.status === 'Sent for Signature',
   ).length
 
-  const inProgress = leads.filter((l) =>
-    ['Qualificado', 'Proposta'].includes(l.status),
-  ).length
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
 
-  const wonLeads = leads.filter((l) => l.status === 'Ganho').length
-
-  const conversionRate = totalLeads
-    ? Math.round((wonLeads / totalLeads) * 100)
-    : 0
+  const monthlyRevenue = contracts
+    .filter((c) => {
+      const d = new Date(c.updatedAt)
+      return (
+        c.status === 'Signed' &&
+        d.getMonth() === currentMonth &&
+        d.getFullYear() === currentYear
+      )
+    })
+    .reduce((sum, c) => {
+      const lead = leads.find((l) => l.id === c.leadId)
+      return sum + (lead?.value || 0)
+    }, 0)
 
   const metrics = [
     {
-      title: 'Total de Leads',
-      value: totalLeads.toString(),
-      icon: Users,
-      trend: '+12% em relação ao mês passado',
-      trendUp: true,
+      title: 'Total de Contratos',
+      value: totalContracts.toString(),
+      icon: FileText,
+      trend: 'Gerenciados no sistema',
     },
     {
-      title: 'Leads em Aberto',
-      value: openLeads.toString(),
-      icon: Target,
-      trend: 'Novos e contatados',
-      trendUp: true,
-    },
-    {
-      title: 'Negociações em Andamento',
-      value: inProgress.toString(),
-      icon: TrendingUp,
-      trend: 'Qualificados e com proposta',
-      trendUp: true,
-    },
-    {
-      title: 'Conversão (%)',
+      title: 'Taxa de Conversão',
       value: `${conversionRate}%`,
+      icon: Percent,
+      trend: 'Contratos assinados vs total',
+    },
+    {
+      title: 'Assinaturas Pendentes',
+      value: pendingSignatures.toString(),
+      icon: Clock,
+      trend: 'Aguardando ação do cliente',
+    },
+    {
+      title: 'Receita Mensal',
+      value: new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(monthlyRevenue),
       icon: DollarSign,
-      trend: 'Leads ganhos vs total',
-      trendUp: true,
+      trend: 'Contratos assinados este mês',
     },
   ]
 

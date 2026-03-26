@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLeads } from '@/contexts/LeadsContext'
 import { useChat } from '@/contexts/ChatContext'
-import { format } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 
@@ -58,7 +58,9 @@ export function Header() {
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               {systemUnreadCount > 0 && (
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600" />
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
+                  {systemUnreadCount}
+                </span>
               )}
             </Button>
           </PopoverTrigger>
@@ -75,9 +77,14 @@ export function Header() {
                     key={n.id}
                     className="flex flex-col gap-1 text-sm border-b pb-2 last:border-0 last:pb-0"
                   >
-                    <p className="font-medium">{n.message}</p>
+                    <p
+                      className={`text-sm ${!n.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}
+                    >
+                      {n.message}
+                    </p>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(n.createdAt), "dd MMM 'às' HH:mm", {
+                      {formatDistanceToNow(new Date(n.createdAt), {
+                        addSuffix: true,
                         locale: ptBR,
                       })}
                     </span>

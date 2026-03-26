@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import Index from '@/pages/Index'
 import Leads from '@/pages/Leads'
@@ -61,7 +61,11 @@ function App() {
                             </ProtectedRoute>
                           }
                         >
-                          <Route index element={<Index />} />
+                          <Route
+                            index
+                            element={<Navigate to="/dashboard" replace />}
+                          />
+                          <Route path="dashboard" element={<Index />} />
                           <Route path="leads" element={<Leads />} />
                           <Route path="leads/new" element={<NewLead />} />
                           <Route path="leads/edit/:id" element={<EditLead />} />

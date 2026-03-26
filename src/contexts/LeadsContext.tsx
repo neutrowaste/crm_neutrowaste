@@ -37,6 +37,7 @@ interface LeadsContextType {
   updateLead: (id: string, lead: Partial<Lead>) => void
   removeLead: (id: string) => void
   markNotificationsAsRead: () => void
+  addNotification: (message: string) => void
 }
 
 const mockLeads: Lead[] = [
@@ -223,6 +224,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
         updateLead,
         removeLead,
         markNotificationsAsRead,
+        addNotification,
       }}
     >
       {children}

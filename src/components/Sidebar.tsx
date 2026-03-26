@@ -20,7 +20,7 @@ import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 
 const getNavigation = (role: string) => {
   const baseNav = [
-    { name: 'Painel', href: '/', icon: LayoutDashboard },
+    { name: 'Painel', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Agenda', href: '/calendar', icon: Calendar },
     { name: 'Chat da Equipe', href: '/chat', icon: MessageSquare },
@@ -77,7 +77,7 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-16 shrink-0 items-center px-6 border-b">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <img
               src={logoImg}
               alt="Neutrowaste Logo"
@@ -90,7 +90,8 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive =
               location.pathname === item.href ||
-              (item.href !== '/' && location.pathname.startsWith(item.href))
+              (item.href !== '/dashboard' &&
+                location.pathname.startsWith(item.href))
             const Icon = item.icon
             const isChat = item.href === '/chat'
 

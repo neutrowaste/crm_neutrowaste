@@ -4,7 +4,10 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useRef,
 } from 'react'
+import { useToast } from '@/hooks/use-toast'
+import { useLeads } from '@/contexts/LeadsContext'
 
 export type ContractStatus =
   | 'Draft'
@@ -68,9 +71,45 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : mockContracts
   })
 
+  const { toast } = useToast()
+  const { leads, addNotification } = useLeads()
+  const prevContractsRef = useRef<Contract[]>(contracts)
+
   useEffect(() => {
     localStorage.setItem('@neutrowaste:contracts', JSON.stringify(contracts))
+    prevContractsRef.current = contracts
   }, [contracts])
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === '@neutrowaste:contracts' && e.newValue) {
+        try {
+          const newContracts: Contract[] = JSON.parse(e.newValue)
+          const signedNewly = newContracts.filter(
+            (c) =>
+              c.status === 'Signed' &&
+              prevContractsRef.current.find(
+                (pc) => pc.id === c.id && pc.status !== 'Signed',
+              ),
+          )
+
+          signedNewly.forEach((c) => {
+            const lead = leads.find((l) => l.id === c.leadId)
+            const clientName = lead ? lead.company : 'Cliente'
+            toast({
+              title: 'Contrato Assinado!',
+              description: `Sucesso: O contrato para ${clientName} foi assinado!`,
+            })
+          })
+
+          setContracts(newContracts)
+          prevContractsRef.current = newContracts
+        } catch (err) {}
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [leads, toast])
 
   const addContract = (
     newContract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
@@ -88,9 +127,21 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
 
   const updateContractStatus = (id: string, status: ContractStatus) => {
     setContracts((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, status, updatedAt: new Date().toISOString() } : c,
-      ),
+      prev.map((c) => {
+        if (c.id === id) {
+          if (status === 'Signed' && c.status !== 'Signed') {
+            const lead = leads.find((l) => l.id === c.leadId)
+            const clientName = lead ? lead.company : 'Cliente'
+            toast({
+              title: 'Contrato Assinado!',
+              description: `Sucesso: O contrato para ${clientName} foi assinado!`,
+            })
+            addNotification(`Contrato "${c.name}" assinado por ${clientName}`)
+          }
+          return { ...c, status, updatedAt: new Date().toISOString() }
+        }
+        return c
+      }),
     )
   }
 

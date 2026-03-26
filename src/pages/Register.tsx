@@ -68,7 +68,7 @@ export default function Register() {
         title: 'Conta criada com sucesso!',
         description: 'Bem-vindo ao Neutrowaste CRM.',
       })
-      navigate('/')
+      navigate('/dashboard')
     } catch (error: any) {
       toast({
         variant: 'destructive',

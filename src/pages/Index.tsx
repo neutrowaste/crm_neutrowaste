@@ -4,6 +4,7 @@ import { SalesFunnel } from '@/components/dashboard/SalesFunnel'
 import { TaskSchedule } from '@/components/dashboard/TaskSchedule'
 import { TeamPerformance } from '@/components/dashboard/TeamPerformance'
 import { PendingSignatures } from '@/components/dashboard/PendingSignatures'
+import { ContractsChart } from '@/components/dashboard/ContractsChart'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Download, Users } from 'lucide-react'
@@ -17,10 +18,10 @@ export default function Index() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Painel
+            Painel de Performance
           </h1>
           <p className="text-muted-foreground">
-            Bem-vindo de volta! Aqui está o que está acontecendo com seus leads.
+            Visão geral de vendas e métricas de conversão.
           </p>
         </div>
         <Button onClick={() => window.print()}>
@@ -41,9 +42,14 @@ export default function Index() {
 
         <TabsContent value="geral" className="space-y-8">
           <Metrics />
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <ContractsChart />
+            <SalesFunnel />
+          </div>
+
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-8">
-              <SalesFunnel />
+            <div className="lg:col-span-2">
               <InteractionHistory />
             </div>
             <div className="space-y-8 print:hidden">
