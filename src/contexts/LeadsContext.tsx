@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react'
 
 export interface Lead {
   id: string
@@ -14,11 +20,20 @@ export interface Lead {
   createdAt: string
 }
 
+export interface Notification {
+  id: string
+  message: string
+  createdAt: string
+  read: boolean
+}
+
 interface LeadsContextType {
   leads: Lead[]
+  notifications: Notification[]
   addLead: (lead: Omit<Lead, 'id' | 'createdAt'>) => void
   updateLead: (id: string, lead: Partial<Lead>) => void
   removeLead: (id: string) => void
+  markNotificationsAsRead: () => void
 }
 
 const mockLeads: Lead[] = [
@@ -77,7 +92,40 @@ const mockLeads: Lead[] = [
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined)
 
 export function LeadsProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(mockLeads)
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    const saved = localStorage.getItem('@neutrowaste:leads')
+    return saved ? JSON.parse(saved) : mockLeads
+  })
+
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const saved = localStorage.getItem('@neutrowaste:notifications')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  useEffect(() => {
+    localStorage.setItem('@neutrowaste:leads', JSON.stringify(leads))
+  }, [leads])
+
+  useEffect(() => {
+    localStorage.setItem(
+      '@neutrowaste:notifications',
+      JSON.stringify(notifications),
+    )
+  }, [notifications])
+
+  const addNotification = (message: string) => {
+    const newNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      message,
+      createdAt: new Date().toISOString(),
+      read: false,
+    }
+    setNotifications((prev) => [newNotif, ...prev])
+  }
+
+  const markNotificationsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+  }
 
   const addLead = (newLead: Omit<Lead, 'id' | 'createdAt'>) => {
     const lead: Lead = {
@@ -86,20 +134,46 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     }
     setLeads((prev) => [lead, ...prev])
+    addNotification(`Novo lead: ${lead.name} cadastrado`)
   }
 
   const updateLead = (id: string, updatedData: Partial<Lead>) => {
     setLeads((prev) =>
-      prev.map((lead) => (lead.id === id ? { ...lead, ...updatedData } : lead)),
+      prev.map((lead) => {
+        if (lead.id === id) {
+          if (updatedData.status && lead.status !== updatedData.status) {
+            addNotification(
+              `Status do lead ${lead.name} alterado para ${updatedData.status}`,
+            )
+          }
+          return { ...lead, ...updatedData }
+        }
+        return lead
+      }),
     )
   }
 
   const removeLead = (id: string) => {
-    setLeads((prev) => prev.filter((lead) => lead.id !== id))
+    setLeads((prev) => {
+      const leadToRemove = prev.find((l) => l.id === id)
+      if (leadToRemove) {
+        addNotification(`Lead ${leadToRemove.name} foi removido`)
+      }
+      return prev.filter((lead) => lead.id !== id)
+    })
   }
 
   return (
-    <LeadsContext.Provider value={{ leads, addLead, updateLead, removeLead }}>
+    <LeadsContext.Provider
+      value={{
+        leads,
+        notifications,
+        addLead,
+        updateLead,
+        removeLead,
+        markNotificationsAsRead,
+      }}
+    >
       {children}
     </LeadsContext.Provider>
   )

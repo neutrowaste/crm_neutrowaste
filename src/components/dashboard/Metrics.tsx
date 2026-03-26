@@ -6,14 +6,20 @@ export function Metrics() {
   const { leads } = useLeads()
 
   const totalLeads = leads.length
-  const activeOpportunities = leads.filter((l) =>
-    ['Novo', 'Contatado', 'Qualificado', 'Proposta'].includes(l.status),
+
+  const openLeads = leads.filter((l) =>
+    ['Novo', 'Contatado'].includes(l.status),
   ).length
+
+  const inProgress = leads.filter((l) =>
+    ['Qualificado', 'Proposta'].includes(l.status),
+  ).length
+
   const wonLeads = leads.filter((l) => l.status === 'Ganho').length
+
   const conversionRate = totalLeads
     ? Math.round((wonLeads / totalLeads) * 100)
     : 0
-  const expectedValue = leads.reduce((acc, lead) => acc + (lead.value || 0), 0)
 
   const metrics = [
     {
@@ -24,27 +30,24 @@ export function Metrics() {
       trendUp: true,
     },
     {
-      title: 'Oportunidades Ativas',
-      value: activeOpportunities.toString(),
+      title: 'Leads em Aberto',
+      value: openLeads.toString(),
       icon: Target,
-      trend: '+4 novas esta semana',
+      trend: 'Novos e contatados',
       trendUp: true,
     },
     {
-      title: 'Taxa de Conversão',
-      value: `${conversionRate}%`,
+      title: 'Negociações em Andamento',
+      value: inProgress.toString(),
       icon: TrendingUp,
-      trend: '+2% em relação ao mês passado',
+      trend: 'Qualificados e com proposta',
       trendUp: true,
     },
     {
-      title: 'Receita Esperada',
-      value: new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-      }).format(expectedValue),
+      title: 'Conversão (%)',
+      value: `${conversionRate}%`,
       icon: DollarSign,
-      trend: 'Baseado em leads qualificados',
+      trend: 'Leads ganhos vs total',
       trendUp: true,
     },
   ]

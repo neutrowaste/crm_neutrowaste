@@ -63,7 +63,7 @@ export default function NewLead() {
     addLead(data)
     toast({
       title: 'Sucesso!',
-      description: 'Lead cadastrado com sucesso.',
+      description: 'Lead cadastrado com sucesso!',
     })
     navigate('/leads')
   }
