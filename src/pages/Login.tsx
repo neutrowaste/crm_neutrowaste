@@ -96,7 +96,7 @@ export default function Login() {
                 <FormField
                   control={form.control}
                   name="email"
-                  render={({ field }) => (
+                  render={({ field: { ref, ...fieldProps } }) => (
                     <FormItem>
                       <FormLabel>E-mail</FormLabel>
                       <FormControl>
@@ -104,7 +104,7 @@ export default function Login() {
                           placeholder="voce@exemplo.com"
                           type="email"
                           disabled={isLoading}
-                          {...field}
+                          {...fieldProps}
                         />
                       </FormControl>
                       <FormMessage />
@@ -114,7 +114,7 @@ export default function Login() {
                 <FormField
                   control={form.control}
                   name="password"
-                  render={({ field }) => (
+                  render={({ field: { ref, ...fieldProps } }) => (
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
                       <FormControl>
@@ -122,7 +122,7 @@ export default function Login() {
                           placeholder="••••••••"
                           type="password"
                           disabled={isLoading}
-                          {...field}
+                          {...fieldProps}
                         />
                       </FormControl>
                       <FormMessage />
@@ -147,6 +147,7 @@ export default function Login() {
                   <p className="text-sm text-blue-700">Contas de teste:</p>
                   <p className="mt-3 text-sm md:ml-6 md:mt-0">
                     <button
+                      type="button"
                       onClick={() => fillMock('admin')}
                       className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600"
                     >
@@ -154,6 +155,7 @@ export default function Login() {
                     </button>
                     <span className="mx-2 text-blue-400">|</span>
                     <button
+                      type="button"
                       onClick={() => fillMock('seller')}
                       className="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600"
                     >
