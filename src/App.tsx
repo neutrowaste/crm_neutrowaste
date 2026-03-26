@@ -12,6 +12,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ChatPage from '@/pages/Chat'
 import ContractsPage from '@/pages/Contracts'
+import Portal from '@/pages/Portal'
 import { LeadsProvider } from '@/contexts/LeadsContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LogsProvider } from '@/contexts/LogsContext'
@@ -37,6 +38,10 @@ function App() {
                       <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route
+                          path="/portal/:contractId"
+                          element={<Portal />}
+                        />
 
                         <Route
                           path="/"

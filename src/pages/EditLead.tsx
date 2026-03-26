@@ -59,6 +59,7 @@ import {
   XCircle,
   Download,
   Trash,
+  Link2,
 } from 'lucide-react'
 
 const leadSchema = z.object({
@@ -140,7 +141,7 @@ export default function EditLead() {
       action: 'Criar',
       leadId: lead.id,
       leadName: lead.name,
-      details: `Novo contrato enviado: ${newContractName}`,
+      details: `Novo contrato criado em rascunho: ${newContractName}`,
     })
 
     toast({ title: 'Sucesso', description: 'Contrato salvo com sucesso.' })
@@ -165,8 +166,25 @@ export default function EditLead() {
       details: `Status do contrato "${contractName}" alterado para ${status}`,
     })
 
-    // Auto update lead status if contract is signed
-    if (status === 'Signed' && lead.status !== 'Ganho') {
+    if (status === 'Sent for Signature') {
+      const portalLink = `${window.location.origin}/portal/${contractId}`
+      const emailBody = `Olá ${lead.name},\n\nO documento "${contractName}" da empresa ${lead.company} está pronto para sua assinatura.\n\nAcesse o portal seguro para revisar e assinar: ${portalLink}`
+
+      addLog({
+        userId: 'system',
+        userName: 'Sistema Automático',
+        action: 'Email Enviado',
+        leadId: lead.id,
+        leadName: lead.name,
+        details: `E-mail automático enviado para ${lead.email}.\nConteúdo:\n${emailBody}`,
+      })
+
+      toast({
+        title: 'Documento Enviado!',
+        description:
+          'O link de assinatura do portal foi enviado ao cliente por e-mail.',
+      })
+    } else if (status === 'Signed' && lead.status !== 'Ganho') {
       updateLead(lead.id, { status: 'Ganho' })
       addLog({
         userId: user.id,
@@ -174,7 +192,7 @@ export default function EditLead() {
         action: 'Atualizar',
         leadId: lead.id,
         leadName: lead.name,
-        details: 'Lead atualizado para Ganho (Contrato assinado)',
+        details: 'Lead atualizado para Ganho (Contrato assinado manualmente)',
       })
       toast({
         title: 'Contrato Assinado!',
@@ -226,7 +244,7 @@ export default function EditLead() {
         <TabsList className="mb-6 grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="contracts">Contratos</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
+          <TabsTrigger value="history">Logs de Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details">
@@ -373,7 +391,7 @@ export default function EditLead() {
               <div>
                 <CardTitle>Gestão de Contratos</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Documentos e propostas associados a este lead.
+                  Documentos, portal e envio para assinatura digital.
                 </p>
               </div>
               <Button onClick={() => setIsUploadOpen(true)}>
@@ -385,130 +403,150 @@ export default function EditLead() {
               {leadContracts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileSignature className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p>Nenhum contrato enviado ainda.</p>
+                  <p>Nenhum contrato criado ainda.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome do Documento</TableHead>
-                      <TableHead>Enviado por</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {leadContracts.map((contract) => (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-medium">
-                          {contract.name}
-                        </TableCell>
-                        <TableCell>{contract.uploadedByName}</TableCell>
-                        <TableCell>
-                          {format(new Date(contract.createdAt), 'dd/MM/yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={contractStatusColors[contract.status]}
-                            variant="secondary"
-                          >
-                            {contract.status === 'Sent for Signature'
-                              ? 'Aguardando Assinatura'
-                              : contract.status === 'Draft'
-                                ? 'Rascunho'
-                                : contract.status === 'Signed'
-                                  ? 'Assinado'
-                                  : 'Rejeitado'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  toast({
-                                    description:
-                                      'Download simulado com sucesso.',
-                                  })
-                                }
-                              >
-                                <Download className="w-4 h-4 mr-2" /> Download
-                              </DropdownMenuItem>
-
-                              {contract.status === 'Draft' && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStatusChange(
-                                      contract.id,
-                                      'Sent for Signature',
-                                      contract.name,
-                                    )
-                                  }
-                                >
-                                  <FileSignature className="w-4 h-4 mr-2" />
-                                  Solicitar Assinatura
-                                </DropdownMenuItem>
-                              )}
-
-                              {contract.status === 'Sent for Signature' && (
-                                <>
-                                  <DropdownMenuItem
-                                    className="text-green-600 focus:text-green-600"
-                                    onClick={() =>
-                                      handleStatusChange(
-                                        contract.id,
-                                        'Signed',
-                                        contract.name,
-                                      )
-                                    }
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Marcar como Assinado
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-orange-600 focus:text-orange-600"
-                                    onClick={() =>
-                                      handleStatusChange(
-                                        contract.id,
-                                        'Rejected',
-                                        contract.name,
-                                      )
-                                    }
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" />
-                                    Marcar como Rejeitado
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-
-                              {(user?.role === 'Admin' ||
-                                user?.id === contract.uploadedBy) && (
-                                <DropdownMenuItem
-                                  className="text-red-600 focus:text-red-600"
-                                  onClick={() =>
-                                    handleDeleteContract(
-                                      contract.id,
-                                      contract.name,
-                                    )
-                                  }
-                                >
-                                  <Trash className="w-4 h-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome do Documento</TableHead>
+                        <TableHead>Enviado por</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {leadContracts.map((contract) => (
+                        <TableRow key={contract.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {contract.name}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {contract.uploadedByName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {format(new Date(contract.createdAt), 'dd/MM/yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={contractStatusColors[contract.status]}
+                              variant="secondary"
+                            >
+                              {contract.status === 'Sent for Signature'
+                                ? 'Aguardando Assinatura'
+                                : contract.status === 'Draft'
+                                  ? 'Rascunho'
+                                  : contract.status === 'Signed'
+                                    ? 'Assinado'
+                                    : 'Rejeitado'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      `${window.location.origin}/portal/${contract.id}`,
+                                    )
+                                    toast({
+                                      description:
+                                        'Link do portal copiado para a área de transferência.',
+                                    })
+                                  }}
+                                >
+                                  <Link2 className="w-4 h-4 mr-2 text-muted-foreground" />
+                                  Copiar Link do Portal
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    toast({
+                                      description:
+                                        'Download simulado com sucesso.',
+                                    })
+                                  }
+                                >
+                                  <Download className="w-4 h-4 mr-2 text-muted-foreground" />{' '}
+                                  Download PDF
+                                </DropdownMenuItem>
+
+                                {contract.status === 'Draft' && (
+                                  <DropdownMenuItem
+                                    className="text-blue-600 focus:text-blue-600"
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        contract.id,
+                                        'Sent for Signature',
+                                        contract.name,
+                                      )
+                                    }
+                                  >
+                                    <FileSignature className="w-4 h-4 mr-2" />
+                                    Enviar para Assinatura
+                                  </DropdownMenuItem>
+                                )}
+
+                                {contract.status === 'Sent for Signature' && (
+                                  <>
+                                    <DropdownMenuItem
+                                      className="text-green-600 focus:text-green-600"
+                                      onClick={() =>
+                                        handleStatusChange(
+                                          contract.id,
+                                          'Signed',
+                                          contract.name,
+                                        )
+                                      }
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-2" />
+                                      Assinatura Manual
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-orange-600 focus:text-orange-600"
+                                      onClick={() =>
+                                        handleStatusChange(
+                                          contract.id,
+                                          'Rejected',
+                                          contract.name,
+                                        )
+                                      }
+                                    >
+                                      <XCircle className="w-4 h-4 mr-2" />
+                                      Marcar como Rejeitado
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {(user?.role === 'Admin' ||
+                                  user?.id === contract.uploadedBy) && (
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600"
+                                    onClick={() =>
+                                      handleDeleteContract(
+                                        contract.id,
+                                        contract.name,
+                                      )
+                                    }
+                                  >
+                                    <Trash className="w-4 h-4 mr-2" />
+                                    Excluir Documento
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -517,7 +555,11 @@ export default function EditLead() {
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Registro de Atividades</CardTitle>
+              <CardTitle>Logs de Auditoria do Lead</CardTitle>
+              <CardDescription>
+                Registro completo de interações, e-mails automáticos e acessos
+                ao portal.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {leadLogs.length === 0 ? (
@@ -528,7 +570,7 @@ export default function EditLead() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data</TableHead>
+                      <TableHead>Data / Hora</TableHead>
                       <TableHead>Usuário</TableHead>
                       <TableHead>Ação</TableHead>
                       <TableHead>Detalhes</TableHead>
@@ -537,14 +579,31 @@ export default function EditLead() {
                   <TableBody>
                     {leadLogs.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap align-top">
                           {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm', {
                             locale: ptBR,
                           })}
                         </TableCell>
-                        <TableCell>{log.userName}</TableCell>
-                        <TableCell>{log.action}</TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="align-top font-medium">
+                          {log.userName}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge
+                            variant="outline"
+                            className={
+                              log.action === 'Email Enviado'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : log.action === 'Assinatura'
+                                  ? 'bg-green-50 text-green-700 border-green-200'
+                                  : log.action === 'Acesso ao Portal'
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : ''
+                            }
+                          >
+                            {log.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-pre-line text-sm max-w-md">
                           {log.details}
                         </TableCell>
                       </TableRow>
@@ -560,9 +619,10 @@ export default function EditLead() {
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enviar Novo Contrato</DialogTitle>
+            <DialogTitle>Anexar Novo Contrato</DialogTitle>
             <DialogDescription>
-              Faça o upload do documento em PDF associado a este lead.
+              Faça o upload do documento que será disponibilizado no Portal do
+              Cliente.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -603,7 +663,7 @@ export default function EditLead() {
               Cancelar
             </Button>
             <Button onClick={handleUploadContract} disabled={!newContractName}>
-              Salvar Contrato
+              Salvar Rascunho
             </Button>
           </DialogFooter>
         </DialogContent>

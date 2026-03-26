@@ -10,7 +10,7 @@ export interface Log {
   id: string
   userId: string
   userName: string
-  action: 'Criar' | 'Atualizar' | 'Excluir'
+  action: string
   leadId: string
   leadName: string
   details: string
