@@ -156,7 +156,7 @@ export default function ForgotPassword() {
                       aria-hidden="true"
                     />
                   </div>
-                  <div className="ml-3">
+                  <div className="ml-3 w-full">
                     <h3 className="text-sm font-semibold text-destructive">
                       Erro de Configuração SMTP
                     </h3>
@@ -183,6 +183,18 @@ export default function ForgotPassword() {
                           personalizado (especialmente o campo "Sender email").
                         </li>
                       </ul>
+                      <div className="pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-background hover:bg-muted text-foreground"
+                          asChild
+                        >
+                          <Link to="/login">
+                            Ignorar erro e tentar fazer login
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

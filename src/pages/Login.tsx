@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { Loader2, Info, ShieldCheck } from 'lucide-react'
+import { Loader2, Info, ShieldCheck, AlertTriangle } from 'lucide-react'
 import {
   InputOTP,
   InputOTPGroup,
@@ -53,6 +53,7 @@ export default function Login() {
   const [showMfa, setShowMfa] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
   const [pendingEmail, setPendingEmail] = useState<string>('')
+  const [smtpError, setSmtpError] = useState(false)
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -122,25 +123,47 @@ export default function Login() {
     }
 
     setIsLoading(true)
+    setSmtpError(false)
+
     try {
-      await loginStep1(data.email, data.password)
+      const { bypassed } = await loginStep1(data.email, data.password)
       setFailedAttempts(0)
       localStorage.removeItem('loginAttempts')
 
-      setPendingEmail(data.email)
-      setShowMfa(true)
+      if (bypassed) {
+        toast({
+          title: 'Acesso Liberado (Modo Teste)',
+          description:
+            'A verificação em duas etapas foi ignorada devido a erro de configuração de SMTP.',
+        })
+        navigate('/dashboard')
+      } else {
+        setPendingEmail(data.email)
+        setShowMfa(true)
 
-      toast({
-        title: 'Verificação Necessária',
-        description: 'Um código de segurança foi enviado para seu e-mail.',
-      })
+        toast({
+          title: 'Verificação Necessária',
+          description: 'Um código de segurança foi enviado para seu e-mail.',
+        })
+      }
     } catch (error: any) {
-      handleFailedAttempt()
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: error.message,
-      })
+      if (
+        error.message?.toLowerCase().includes('smtp') ||
+        error.message?.toLowerCase().includes('v.from')
+      ) {
+        setSmtpError(true)
+      } else if (
+        error.message?.includes('inválidos') ||
+        error.message?.includes('inválida')
+      ) {
+        handleFailedAttempt()
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro',
+          description: error.message,
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -259,6 +282,48 @@ export default function Login() {
             <CardTitle>Login Seguro</CardTitle>
           </CardHeader>
           <CardContent>
+            {smtpError && (
+              <div className="mb-6 rounded-md bg-destructive/10 p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2">
+                <div className="flex">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <AlertTriangle
+                      className="h-5 w-5 text-destructive"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-semibold text-destructive">
+                      Erro de Configuração SMTP
+                    </h3>
+                    <div className="mt-2 text-sm text-destructive/90 space-y-2">
+                      <p>
+                        O provedor de e-mail bloqueou o envio de verificação. O
+                        erro indica que o <strong>e-mail de remetente</strong>{' '}
+                        configurado no painel é inválido.
+                      </p>
+                      <p className="font-medium">
+                        Solução para o Administrador:
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Acesse o painel do Supabase.</li>
+                        <li>
+                          Vá em{' '}
+                          <strong>
+                            Authentication &gt; Providers &gt; Email
+                          </strong>
+                          .
+                        </li>
+                        <li>
+                          Verifique e corrija as configurações de SMTP
+                          personalizado.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {lockoutUntil && Date.now() < lockoutUntil ? (
               <div className="p-4 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 rounded-md text-sm text-center font-medium">
                 Conta temporariamente bloqueada. Tente novamente mais tarde.
