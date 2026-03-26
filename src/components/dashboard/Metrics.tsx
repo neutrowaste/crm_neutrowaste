@@ -69,6 +69,7 @@ export function Metrics({ timeFilter = 'monthly' }: { timeFilter?: string }) {
       value: new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL',
+        maximumFractionDigits: 0,
       }).format(revenue),
       icon: DollarSign,
       trend: 'Contratos assinados',
@@ -76,20 +77,25 @@ export function Metrics({ timeFilter = 'monthly' }: { timeFilter?: string }) {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {metrics.map((metric) => {
         const Icon = metric.icon
         return (
-          <Card key={metric.title}>
+          <Card
+            key={metric.title}
+            className="hover:shadow-md transition-shadow"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {metric.title}
               </CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metric.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <div className="text-2xl font-bold truncate">{metric.value}</div>
+              <p className="text-xs text-muted-foreground mt-1 truncate">
                 {metric.trend}
               </p>
             </CardContent>

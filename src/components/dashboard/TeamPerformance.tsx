@@ -67,7 +67,7 @@ export function TeamPerformance() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>KPIs da Equipe</CardTitle>
               <CardDescription>
@@ -75,39 +75,50 @@ export function TeamPerformance() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vendedor</TableHead>
-                    <TableHead className="text-right">
-                      Leads Atribuídos
-                    </TableHead>
-                    <TableHead className="text-right">Conversão (%)</TableHead>
-                    <TableHead className="text-right">Valor Pipeline</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.map((userStat) => (
-                    <TableRow key={userStat.id}>
-                      <TableCell className="font-medium">
-                        {userStat.name}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {userStat.totalAssigned}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {userStat.conversionRate}%
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(userStat.pipelineValue)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto -mx-6 sm:mx-0">
+                <div className="min-w-[500px] px-6 sm:px-0">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Vendedor</TableHead>
+                        <TableHead className="text-right">
+                          Leads Atribuídos
+                        </TableHead>
+                        <TableHead className="text-right">
+                          Conversão (%)
+                        </TableHead>
+                        <TableHead className="text-right">
+                          Valor Pipeline
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.map((userStat) => (
+                        <TableRow
+                          key={userStat.id}
+                          className="hover:bg-muted/30"
+                        >
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {userStat.name}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {userStat.totalAssigned}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {userStat.conversionRate}%
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-primary">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            }).format(userStat.pipelineValue)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -125,7 +136,7 @@ export function TeamPerformance() {
               ) : (
                 <ChartContainer
                   config={{ value: { label: 'Pipeline' } }}
-                  className="h-[300px]"
+                  className="h-[300px] w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

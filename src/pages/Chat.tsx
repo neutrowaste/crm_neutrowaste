@@ -119,20 +119,24 @@ export default function ChatPage() {
   const otherUsers = allUsers.filter((u) => u.id !== user?.id)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="mb-4 shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight">Chat da Equipe</h1>
-        <p className="text-muted-foreground">
+    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
+      <div className="mb-4 shrink-0 hidden md:block">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Chat da Equipe
+        </h1>
+        <p className="text-muted-foreground mt-1">
           Comunicação interna e discussão de oportunidades.
         </p>
       </div>
 
-      <div className="flex h-full gap-4 overflow-hidden">
+      <div className="flex h-full gap-4 overflow-hidden relative">
         {/* Sidebar List */}
         <Card
           className={cn(
-            'w-full md:w-80 flex flex-col shrink-0 overflow-hidden',
-            !showMobileList && 'hidden md:flex',
+            'w-full md:w-80 flex flex-col shrink-0 overflow-hidden absolute md:relative z-10 h-full md:h-auto inset-0 transition-transform duration-300 ease-in-out bg-background',
+            !showMobileList
+              ? '-translate-x-full md:translate-x-0'
+              : 'translate-x-0',
           )}
         >
           <CardHeader className="border-b py-4 px-4 bg-muted/30 shrink-0">
@@ -228,12 +232,14 @@ export default function ChatPage() {
         {/* Chat Area */}
         <Card
           className={cn(
-            'flex-1 flex flex-col overflow-hidden',
-            showMobileList && 'hidden md:flex',
+            'flex-1 flex flex-col overflow-hidden w-full absolute md:relative z-0 h-full md:h-auto inset-0 transition-transform duration-300 ease-in-out bg-background',
+            showMobileList
+              ? 'translate-x-full md:translate-x-0'
+              : 'translate-x-0',
           )}
         >
-          <CardHeader className="border-b py-3 px-4 bg-background shrink-0 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
+          <CardHeader className="border-b py-3 px-4 bg-background shrink-0 flex flex-row items-center justify-between rounded-t-lg">
+            <div className="flex items-center gap-3 w-full">
               <Button
                 variant="ghost"
                 size="icon"
@@ -266,8 +272,8 @@ export default function ChatPage() {
                   )}
                 </div>
               )}
-              <div className="flex flex-col">
-                <CardTitle className="text-sm font-medium leading-none">
+              <div className="flex flex-col truncate">
+                <CardTitle className="text-sm font-medium leading-none truncate">
                   {activeChannelName}
                 </CardTitle>
                 {activeChannel !== 'general' && (
@@ -294,9 +300,9 @@ export default function ChatPage() {
                 return (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 max-w-[85%] md:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
+                    className={`flex gap-3 max-w-[90%] md:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
                   >
-                    <Avatar className="h-8 w-8 shrink-0 shadow-sm">
+                    <Avatar className="h-8 w-8 shrink-0 shadow-sm hidden sm:flex">
                       <AvatarImage
                         src={`https://img.usecurling.com/ppl/thumbnail?seed=${msg.userId}`}
                       />
@@ -305,9 +311,9 @@ export default function ChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div
-                      className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}
+                      className={`flex flex-col gap-1 w-full ${isMe ? 'items-end' : 'items-start'}`}
                     >
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground ml-1">
                         <span>{msg.userName}</span>
                         <span>•</span>
                         <span>
@@ -317,7 +323,8 @@ export default function ChatPage() {
                         </span>
                       </div>
                       <div
-                        className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm ${isMe ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-card border rounded-tl-none'}`}
+                        className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm break-words ${isMe ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-card border rounded-tl-none'}`}
+                        style={{ wordBreak: 'break-word' }}
                       >
                         {msg.text}
 
@@ -326,13 +333,13 @@ export default function ChatPage() {
                             className={`mt-2 p-2.5 rounded-md text-xs flex items-center gap-2 border ${isMe ? 'bg-primary-foreground/10 border-primary-foreground/20' : 'bg-muted border-border'}`}
                           >
                             <FileText className="w-4 h-4 shrink-0 opacity-80" />
-                            <span className="font-medium truncate max-w-[150px]">
+                            <span className="font-medium truncate max-w-[150px] sm:max-w-[200px]">
                               {msg.fileName}
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`h-6 px-2 ml-auto ${isMe ? 'text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground' : ''}`}
+                              className={`h-6 px-2 ml-auto shrink-0 ${isMe ? 'text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground' : ''}`}
                             >
                               Abrir
                             </Button>
@@ -361,10 +368,10 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </CardContent>
 
-          <div className="p-3 md:p-4 border-t bg-background shrink-0">
+          <div className="p-3 md:p-4 border-t bg-background shrink-0 rounded-b-lg">
             <form onSubmit={handleSend} className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-[140px] md:w-[180px] shrink-0">
+                <div className="w-[120px] md:w-[180px] shrink-0 hidden sm:block">
                   <Select
                     value={selectedLeadId}
                     onValueChange={setSelectedLeadId}
@@ -383,7 +390,7 @@ export default function ChatPage() {
                   </Select>
                 </div>
 
-                <div className="relative">
+                <div className="relative shrink-0">
                   <input
                     type="file"
                     id="chat-file-upload"
@@ -409,7 +416,6 @@ export default function ChatPage() {
                   className="flex-1 h-10 text-sm"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  autoFocus={!showMobileList}
                 />
                 <Button
                   type="submit"
@@ -419,6 +425,24 @@ export default function ChatPage() {
                 >
                   <Send className="h-4 w-4" />
                 </Button>
+              </div>
+              <div className="sm:hidden w-full">
+                <Select
+                  value={selectedLeadId}
+                  onValueChange={setSelectedLeadId}
+                >
+                  <SelectTrigger className="h-8 border-dashed bg-muted/50 text-xs w-full">
+                    <SelectValue placeholder="Mencionar Lead (Opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {leads.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </form>
           </div>

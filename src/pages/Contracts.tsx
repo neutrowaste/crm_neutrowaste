@@ -76,12 +76,12 @@ export default function ContractsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Visão Global de Contratos
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             Monitore todos os contratos e propostas da organização.
           </p>
         </div>
@@ -89,25 +89,25 @@ export default function ContractsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <CardTitle>Todos os Documentos</CardTitle>
               <CardDescription>
                 Filtre e busque por contratos enviados.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar contrato ou lead..."
-                  className="pl-9"
+                  className="pl-9 w-full"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -124,80 +124,89 @@ export default function ContractsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contrato</TableHead>
-                  <TableHead>Lead Associado</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead>Data de Atualização</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContracts.length === 0 ? (
+          <div className="rounded-md border overflow-x-auto -mx-6 sm:mx-0">
+            <div className="min-w-[800px] px-6 sm:px-0">
+              <Table>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-32 text-center text-muted-foreground"
-                    >
-                      <FileSignature className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                      Nenhum contrato encontrado.
-                    </TableCell>
+                    <TableHead>Contrato</TableHead>
+                    <TableHead>Lead Associado</TableHead>
+                    <TableHead>Vendedor</TableHead>
+                    <TableHead>Data de Atualização</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ) : (
-                  filteredContracts.map((contract) => {
-                    const lead = leads.find((l) => l.id === contract.leadId)
-                    return (
-                      <TableRow key={contract.id}>
-                        <TableCell className="font-medium">
-                          {contract.name}
-                        </TableCell>
-                        <TableCell>
-                          {lead ? (
-                            <div className="flex flex-col">
-                              <span>{lead.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {lead.company}
+                </TableHeader>
+                <TableBody>
+                  {filteredContracts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="h-32 text-center text-muted-foreground"
+                      >
+                        <FileSignature className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        Nenhum contrato encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredContracts.map((contract) => {
+                      const lead = leads.find((l) => l.id === contract.leadId)
+                      return (
+                        <TableRow
+                          key={contract.id}
+                          className="hover:bg-muted/30"
+                        >
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {contract.name}
+                          </TableCell>
+                          <TableCell>
+                            {lead ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium">{lead.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {lead.company}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Lead removido
                               </span>
-                            </div>
-                          ) : (
-                            'Lead removido'
-                          )}
-                        </TableCell>
-                        <TableCell>{contract.uploadedByName}</TableCell>
-                        <TableCell>
-                          {format(
-                            new Date(contract.updatedAt),
-                            'dd MMM yyyy, HH:mm',
-                            { locale: ptBR },
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={contractStatusColors[contract.status]}
-                            variant="secondary"
-                          >
-                            {contractStatusLabels[contract.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link
-                              to={`/leads/edit/${contract.leadId}?tab=contracts`}
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {contract.uploadedByName}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {format(
+                              new Date(contract.updatedAt),
+                              'dd MMM yyyy, HH:mm',
+                              { locale: ptBR },
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={contractStatusColors[contract.status]}
+                              variant="secondary"
                             >
-                              <ArrowRight className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              {contractStatusLabels[contract.status]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link
+                                to={`/leads/edit/${contract.leadId}?tab=contracts`}
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

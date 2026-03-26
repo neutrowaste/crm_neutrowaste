@@ -8,10 +8,11 @@ import {
   Settings,
   Menu,
   DollarSign,
-  FileText,
   MessageSquare,
   FileArchive,
   Kanban,
+  Zap,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useState } from 'react'
@@ -36,9 +37,14 @@ const getNavigation = (role: string) => {
       icon: DollarSign,
     })
     baseNav.push({
-      name: 'Logs do Sistema',
+      name: 'Automações',
+      href: '/automations',
+      icon: Zap,
+    })
+    baseNav.push({
+      name: 'Logs de Auditoria',
       href: '/logs',
-      icon: FileText,
+      icon: ShieldAlert,
     })
   }
 

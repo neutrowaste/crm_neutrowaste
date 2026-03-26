@@ -48,12 +48,12 @@ export function SalesFunnel({
   }, [leads, timeFilter])
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Funil de Vendas</CardTitle>
         <CardDescription>Distribuição de leads por etapa</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 min-h-[300px]">
         <ChartContainer
           config={{
             value: {
@@ -61,7 +61,7 @@ export function SalesFunnel({
               color: 'hsl(var(--primary))',
             },
           }}
-          className="h-[300px]"
+          className="h-full w-full"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -70,12 +70,12 @@ export function SalesFunnel({
             >
               <XAxis
                 dataKey="name"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
                 allowDecimals={false}

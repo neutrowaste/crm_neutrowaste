@@ -8,6 +8,7 @@ import CalendarPage from '@/pages/Calendar'
 import KanbanPage from '@/pages/Kanban'
 import LogsPage from '@/pages/Logs'
 import TemplatesPage from '@/pages/Templates'
+import AutomationsPage from '@/pages/Automations'
 import PlaceholderPage from '@/pages/PlaceholderPage'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
@@ -25,6 +26,7 @@ import { TemplatesProvider } from '@/contexts/TemplatesContext'
 import { WhatsAppProvider } from '@/contexts/WhatsAppContext'
 import { ChatProvider } from '@/contexts/ChatContext'
 import { ContractsProvider } from '@/contexts/ContractsContext'
+import { AutomationsProvider } from '@/contexts/AutomationsContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -41,68 +43,77 @@ function App() {
                   <TemplatesProvider>
                     <LeadsProvider>
                       <ContractsProvider>
-                        <Routes>
-                          <Route path="/login" element={<Login />} />
-                          <Route path="/register" element={<Register />} />
-                          <Route
-                            path="/forgot-password"
-                            element={<ForgotPassword />}
-                          />
-                          <Route
-                            path="/reset-password"
-                            element={<ResetPassword />}
-                          />
-                          <Route
-                            path="/portal/:contractId"
-                            element={<Portal />}
-                          />
+                        <AutomationsProvider>
+                          <Routes>
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
+                            <Route
+                              path="/forgot-password"
+                              element={<ForgotPassword />}
+                            />
+                            <Route
+                              path="/reset-password"
+                              element={<ResetPassword />}
+                            />
+                            <Route
+                              path="/portal/:contractId"
+                              element={<Portal />}
+                            />
 
-                          <Route
-                            path="/"
-                            element={
-                              <ProtectedRoute>
-                                <Layout />
-                              </ProtectedRoute>
-                            }
-                          >
                             <Route
-                              index
-                              element={<Navigate to="/dashboard" replace />}
-                            />
-                            <Route path="dashboard" element={<Index />} />
-                            <Route path="leads" element={<Leads />} />
-                            <Route path="leads/new" element={<NewLead />} />
-                            <Route
-                              path="leads/edit/:id"
-                              element={<EditLead />}
-                            />
-                            <Route path="calendar" element={<CalendarPage />} />
-                            <Route path="kanban" element={<KanbanPage />} />
-                            <Route path="chat" element={<ChatPage />} />
-                            <Route path="reports" element={<Reports />} />
-                            <Route path="logs" element={<LogsPage />} />
-                            <Route
-                              path="templates"
-                              element={<TemplatesPage />}
-                            />
-                            <Route
-                              path="contracts"
-                              element={<ContractsPage />}
-                            />
-                            <Route
-                              path="financial-reports"
+                              path="/"
                               element={
-                                <PlaceholderPage title="Relatórios Financeiros" />
+                                <ProtectedRoute>
+                                  <Layout />
+                                </ProtectedRoute>
                               }
-                            />
-                            <Route
-                              path="settings"
-                              element={
-                                <PlaceholderPage title="Configurações" />
-                              }
-                            />
-                          </Route>
-                        </Routes>
+                            >
+                              <Route
+                                index
+                                element={<Navigate to="/dashboard" replace />}
+                              />
+                              <Route path="dashboard" element={<Index />} />
+                              <Route path="leads" element={<Leads />} />
+                              <Route path="leads/new" element={<NewLead />} />
+                              <Route
+                                path="leads/edit/:id"
+                                element={<EditLead />}
+                              />
+                              <Route
+                                path="calendar"
+                                element={<CalendarPage />}
+                              />
+                              <Route path="kanban" element={<KanbanPage />} />
+                              <Route path="chat" element={<ChatPage />} />
+                              <Route path="reports" element={<Reports />} />
+                              <Route path="logs" element={<LogsPage />} />
+                              <Route
+                                path="automations"
+                                element={<AutomationsPage />}
+                              />
+                              <Route
+                                path="templates"
+                                element={<TemplatesPage />}
+                              />
+                              <Route
+                                path="contracts"
+                                element={<ContractsPage />}
+                              />
+                              <Route
+                                path="financial-reports"
+                                element={
+                                  <PlaceholderPage title="Relatórios Financeiros" />
+                                }
+                              />
+                              <Route
+                                path="settings"
+                                element={
+                                  <PlaceholderPage title="Configurações Gerais" />
+                                }
+                              />
+                            </Route>
+                          </Routes>
+                        </AutomationsProvider>
                       </ContractsProvider>
                     </LeadsProvider>
                   </TemplatesProvider>

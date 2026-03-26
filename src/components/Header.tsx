@@ -30,18 +30,18 @@ export function Header() {
   const chatUnreadCount = user ? getUnreadCount(user.id) : 0
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 md:px-8 pl-16 md:pl-8 transition-colors duration-300">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 md:px-8 pl-14 md:pl-8 transition-colors duration-300">
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full max-w-sm hidden sm:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar leads..."
+            placeholder="Buscar no sistema..."
             className="w-full bg-muted/50 pl-9"
           />
         </div>
       </div>
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1 sm:gap-2 md:gap-4 ml-auto">
         <ThemeToggle />
 
         <Button
@@ -77,11 +77,13 @@ export function Header() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80">
-            <h4 className="font-semibold mb-3">Notificações do Sistema</h4>
-            <div className="space-y-3">
+          <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
+            <div className="bg-muted/50 p-3 border-b">
+              <h4 className="font-semibold text-sm">Notificações do Sistema</h4>
+            </div>
+            <div className="max-h-[300px] overflow-y-auto p-3 space-y-3">
               {recentNotifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhuma atividade recente.
                 </p>
               ) : (
@@ -112,7 +114,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-2 px-2 hover:bg-muted rounded-full pl-2 pr-4"
+              className="flex items-center gap-2 px-2 hover:bg-muted rounded-full pl-2 pr-2 md:pr-4"
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage

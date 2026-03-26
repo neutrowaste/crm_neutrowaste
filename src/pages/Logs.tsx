@@ -10,10 +10,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 import { Navigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ShieldAlert, Search } from 'lucide-react'
 
 export default function Logs() {
   const { logs } = useLogs()
@@ -38,69 +45,90 @@ export default function Logs() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Logs do Sistema
-        </h1>
-        <p className="text-muted-foreground">
-          Histórico de ações realizadas na plataforma.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <ShieldAlert className="h-8 w-8 text-primary" />
+            Logs de Auditoria
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Rastreabilidade completa: histórico de alterações, gatilhos
+            automáticos e acessos.
+          </p>
+        </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
+        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
+          <div className="space-y-1">
             <CardTitle>Registro de Atividades</CardTitle>
+            <CardDescription>
+              Visualizando {filteredLogs.length} registros no sistema.
+            </CardDescription>
+          </div>
+          <div className="relative w-full md:w-72 shrink-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por usuário ou lead..."
-              className="w-[300px]"
+              placeholder="Buscar por usuário, ação ou lead..."
+              className="pl-9 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data/Hora</TableHead>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Ação</TableHead>
-                <TableHead>Lead Alvo</TableHead>
-                <TableHead>Detalhes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    Nenhum log encontrado.
-                  </TableCell>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[800px]">
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[160px]">Data/Hora</TableHead>
+                  <TableHead className="w-[180px]">Usuário</TableHead>
+                  <TableHead className="w-[160px]">Ação</TableHead>
+                  <TableHead className="w-[200px]">Entidade / Lead</TableHead>
+                  <TableHead>Detalhes</TableHead>
                 </TableRow>
-              ) : (
-                filteredLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm', {
-                        locale: ptBR,
-                      })}
-                    </TableCell>
-                    <TableCell>{log.userName}</TableCell>
-                    <TableCell>
-                      <span className="font-medium">{log.action}</span>
-                    </TableCell>
-                    <TableCell>{log.leadName}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {log.details}
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-12 text-muted-foreground"
+                    >
+                      Nenhum registro de auditoria encontrado.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <TableRow key={log.id} className="hover:bg-muted/30">
+                      <TableCell className="whitespace-nowrap align-top font-medium text-muted-foreground">
+                        {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm', {
+                          locale: ptBR,
+                        })}
+                      </TableCell>
+                      <TableCell className="align-top font-medium">
+                        {log.userName}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                          {log.action}
+                        </span>
+                      </TableCell>
+                      <TableCell
+                        className="align-top font-medium truncate max-w-[200px]"
+                        title={log.leadName}
+                      >
+                        {log.leadName}
+                      </TableCell>
+                      <TableCell className="align-top text-muted-foreground max-w-md whitespace-pre-wrap text-sm">
+                        {log.details}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

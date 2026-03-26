@@ -3,6 +3,8 @@ import { useLeads, Lead } from '@/contexts/LeadsContext'
 import { useLogs } from '@/contexts/LogsContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTemplates } from '@/contexts/TemplatesContext'
+import { useAutomations } from '@/contexts/AutomationsContext'
+import { useTasks } from '@/contexts/TasksContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Send, Clock, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -42,6 +44,8 @@ export default function KanbanPage() {
   const { user } = useAuth()
   const { templates } = useTemplates()
   const { toast } = useToast()
+  const { emailOnProposal, taskOnWon } = useAutomations()
+  const { addTask } = useTasks()
 
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState('')
@@ -67,6 +71,8 @@ export default function KanbanPage() {
     const lead = leads.find((l) => l.id === leadId)
     if (lead && lead.status !== newStatus) {
       updateLead(leadId, { status: newStatus as any })
+
+      // Audit Log for movement
       if (user) {
         addLog({
           userId: user.id,
@@ -75,6 +81,46 @@ export default function KanbanPage() {
           leadId: lead.id,
           leadName: lead.name,
           details: `Lead movido para ${columnId} (Status: ${newStatus})`,
+        })
+      }
+
+      // Automation Triggers
+      if (newStatus === 'Proposta' && emailOnProposal && user) {
+        addLog({
+          userId: 'system',
+          userName: 'Automação do Sistema',
+          action: 'E-mail Automático',
+          leadId: lead.id,
+          leadName: lead.name,
+          details: `E-mail de notificação de envio de contrato disparado para ${lead.email} via gatilho automático.`,
+        })
+        toast({
+          title: 'Automação Disparada',
+          description: `E-mail automático enviado para ${lead.name} referente à proposta.`,
+        })
+      }
+
+      if (newStatus === 'Ganho' && taskOnWon && user) {
+        addTask({
+          leadId: lead.id,
+          title: `Onboarding de ${lead.company}`,
+          dueDate: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+          time: '10:00',
+          description:
+            'Apresentação inicial de boas-vindas gerada automaticamente.',
+          completed: false,
+        })
+        addLog({
+          userId: 'system',
+          userName: 'Automação do Sistema',
+          action: 'Tarefa Automática',
+          leadId: lead.id,
+          leadName: lead.name,
+          details: `Tarefa de Onboarding criada para o dia seguinte via gatilho automático.`,
+        })
+        toast({
+          title: 'Automação Disparada',
+          description: `Tarefa de Onboarding agendada para amanhã.`,
         })
       }
     }
@@ -117,23 +163,25 @@ export default function KanbanPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 overflow-hidden">
-      <div className="shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Sales Funnel (Kanban)
-        </h1>
-        <p className="text-muted-foreground">
-          Gerencie leads e contratos arrastando os cartões entre as colunas.
-        </p>
+      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Sales Funnel (Kanban)
+          </h1>
+          <p className="text-muted-foreground">
+            Gerencie leads e contratos arrastando os cartões entre as colunas.
+          </p>
+        </div>
       </div>
 
-      <div className="flex gap-6 overflow-x-auto pb-4 flex-1">
+      <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 flex-1 snap-x">
         {columns.map((col) => {
           const colLeads = leads.filter((l) => col.statuses.includes(l.status))
 
           return (
             <div
               key={col.id}
-              className="flex flex-col w-80 shrink-0 bg-muted/50 border rounded-xl overflow-hidden"
+              className="flex flex-col w-[85vw] md:w-80 shrink-0 bg-muted/50 border rounded-xl overflow-hidden snap-center"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
             >

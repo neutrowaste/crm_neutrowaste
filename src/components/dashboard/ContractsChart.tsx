@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { format, subDays, isSameDay } from 'date-fns'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export function ContractsChart({
   timeFilter = 'monthly',
@@ -21,6 +22,7 @@ export function ContractsChart({
   timeFilter?: string
 }) {
   const { contracts } = useContracts()
+  const isMobile = useIsMobile()
 
   const data = useMemo(() => {
     let numDays = 30
@@ -48,17 +50,17 @@ export function ContractsChart({
   }, [contracts, timeFilter])
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Assinaturas de Contratos</CardTitle>
         <CardDescription>Tendência no período selecionado</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 min-h-[300px]">
         <ChartContainer
           config={{
             value: { label: 'Assinaturas', color: 'hsl(var(--primary))' },
           }}
-          className="h-[300px]"
+          className="h-full w-full"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -67,12 +69,17 @@ export function ContractsChart({
             >
               <XAxis
                 dataKey="date"
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
+                tickFormatter={(value, index) => {
+                  // Hide some labels on mobile to prevent overlap
+                  if (isMobile && data.length > 7 && index % 2 !== 0) return ''
+                  return value
+                }}
               />
               <YAxis
-                fontSize={12}
+                fontSize={10}
                 tickLine={false}
                 axisLine={false}
                 allowDecimals={false}

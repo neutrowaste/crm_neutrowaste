@@ -81,12 +81,12 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
     setTasks((prev) => [
+      ...prev,
       {
         ...task,
         id: Math.random().toString(36).substring(2, 9),
         createdAt: new Date().toISOString(),
       },
-      ...prev,
     ])
   }
 

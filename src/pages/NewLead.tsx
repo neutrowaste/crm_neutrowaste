@@ -84,7 +84,7 @@ export default function NewLead() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Cadastrar Novo Lead
         </h1>
       </div>
@@ -94,7 +94,7 @@ export default function NewLead() {
             <CardHeader>
               <CardTitle>Informações Básicas</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="name"
@@ -158,7 +158,7 @@ export default function NewLead() {
             <CardHeader>
               <CardTitle>Detalhes do Lead</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="status"
@@ -256,7 +256,7 @@ export default function NewLead() {
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>Observações</FormLabel>
                     <FormControl>
                       <Textarea className="min-h-[100px]" {...field} />
@@ -268,15 +268,18 @@ export default function NewLead() {
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-end gap-4">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 sm:gap-4">
             <Button
               type="button"
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => navigate('/leads')}
             >
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" className="w-full sm:w-auto">
+              Salvar
+            </Button>
           </div>
         </form>
       </Form>

@@ -94,12 +94,12 @@ export default function Reports() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Relatórios e Análises
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             Acompanhe o desempenho de vendas, métricas de conversão e dados da
             operação.
           </p>
@@ -110,7 +110,7 @@ export default function Reports() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="border-primary/20 text-primary"
+                  className="flex-1 md:flex-none border-primary/20 text-primary"
                 >
                   <Bookmark className="mr-2 h-4 w-4" />
                   Salvos
@@ -126,13 +126,18 @@ export default function Reports() {
             </DropdownMenu>
           )}
 
-          <Button variant="outline" onClick={() => setIsSaveDialogOpen(true)}>
+          <Button
+            variant="outline"
+            className="flex-1 md:flex-none"
+            onClick={() => setIsSaveDialogOpen(true)}
+          >
             <Save className="mr-2 h-4 w-4" />
-            Salvar Visão
+            <span className="hidden sm:inline">Salvar Visão</span>
+            <span className="sm:hidden">Salvar</span>
           </Button>
 
           <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px] flex-1 md:flex-none">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -144,7 +149,7 @@ export default function Reports() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto flex-1 md:flex-none">
                 <Download className="mr-2 h-4 w-4" />
                 Exportar
               </Button>
@@ -188,7 +193,7 @@ export default function Reports() {
       </div>
 
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Salvar Grupo de Relatório</DialogTitle>
           </DialogHeader>
@@ -211,14 +216,16 @@ export default function Reports() {
                   : 'Trimestral'}
             </p>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => setIsSaveDialogOpen(false)}
             >
               Cancelar
             </Button>
             <Button
+              className="w-full sm:w-auto"
               onClick={handleSaveReportGroup}
               disabled={!reportName.trim()}
             >

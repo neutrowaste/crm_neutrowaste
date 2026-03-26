@@ -33,7 +33,7 @@ export function PendingSignatures() {
             <CardTitle>Assinaturas Pendentes</CardTitle>
             <CardDescription>Contratos aguardando o cliente</CardDescription>
           </div>
-          <FileSignature className="h-5 w-5 text-muted-foreground" />
+          <FileSignature className="h-5 w-5 text-muted-foreground hidden sm:block" />
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
@@ -48,20 +48,25 @@ export function PendingSignatures() {
               return (
                 <div
                   key={contract.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 gap-3"
                 >
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none truncate max-w-[200px] sm:max-w-[300px]">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-none truncate">
                       {contract.name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
                       {lead?.name || 'Lead desconhecido'} • Enviado em{' '}
-                      {format(new Date(contract.updatedAt), 'dd/MM/yyyy', {
+                      {format(new Date(contract.updatedAt), 'dd/MM', {
                         locale: ptBR,
                       })}
                     </p>
                   </div>
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    asChild
+                  >
                     <Link to={`/leads/edit/${contract.leadId}?tab=contracts`}>
                       <ArrowRight className="h-4 w-4" />
                     </Link>
