@@ -51,9 +51,20 @@ export default function ForgotPassword() {
     try {
       const email = data.email.trim()
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          const err: any = new Error('upstream request timeout')
+          err.status = 504
+          reject(err)
+        }, 15000)
       })
+
+      const { error } = await Promise.race([
+        supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }),
+        timeoutPromise,
+      ])
 
       if (error) {
         throw error
@@ -90,6 +101,15 @@ export default function ForgotPassword() {
           errorMessage =
             'Configuração de URL de redirecionamento inválida no servidor.'
         } else if (
+          msg.includes('timeout') ||
+          msg.includes('gateway') ||
+          msg.includes('504') ||
+          error.status === 504
+        ) {
+          setSmtpError(true)
+          errorMessage =
+            'O servidor de e-mail demorou muito para responder (Timeout 504). Isso indica uma possível falha de conexão no provedor SMTP configurado.'
+        } else if (
           msg.includes('v.from') ||
           msg.includes('smtp') ||
           msg.includes('sender') ||
@@ -101,6 +121,10 @@ export default function ForgotPassword() {
         } else {
           errorMessage = `Falha reportada pelo servidor: ${error.message}`
         }
+      } else if (error?.status === 504) {
+        setSmtpError(true)
+        errorMessage =
+          'O servidor de e-mail demorou muito para responder (Timeout 504). Isso indica uma possível falha de conexão no provedor SMTP configurado.'
       }
 
       toast({
@@ -161,9 +185,8 @@ export default function ForgotPassword() {
                     </h3>
                     <div className="mt-2 text-sm text-destructive/90 space-y-2">
                       <p>
-                        O provedor de e-mail bloqueou o envio. O erro indica que
-                        as credenciais SMTP ou o remetente configurado no painel
-                        estão inválidos.
+                        Ocorreu uma falha ou demora excessiva ao tentar
+                        comunicar com o provedor de e-mail configurado.
                       </p>
                       <p className="font-medium text-xs mt-2">
                         Solução para o Administrador:
@@ -179,8 +202,8 @@ export default function ForgotPassword() {
                         </li>
                         <li>
                           Desative a opção <strong>Custom SMTP</strong> ou
-                          corrija os dados informados (Especialmente Host,
-                          Porta, Usuário, Senha e Sender Email).
+                          verifique as configurações de rede/autenticação do
+                          provedor utilizado.
                         </li>
                       </ul>
                       <div className="pt-3 flex flex-col gap-2">
