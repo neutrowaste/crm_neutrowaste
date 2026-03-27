@@ -37,7 +37,17 @@ export default function ForgotPassword() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [smtpError, setSmtpError] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+
+  const [countdown, setCountdown] = useState(() => {
+    const savedCooldown = localStorage.getItem('forgotPasswordCooldown')
+    if (savedCooldown) {
+      const remaining = Math.ceil(
+        (parseInt(savedCooldown, 10) - Date.now()) / 1000,
+      )
+      return remaining > 0 ? remaining : 0
+    }
+    return 0
+  })
 
   const form = useForm<ForgotFormValues>({
     resolver: zodResolver(forgotSchema),
@@ -49,10 +59,31 @@ export default function ForgotPassword() {
   useEffect(() => {
     let timer: NodeJS.Timeout
     if (countdown > 0) {
-      timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+      timer = setTimeout(() => {
+        setCountdown((c) => {
+          const next = c - 1
+          if (next <= 0) {
+            localStorage.removeItem('forgotPasswordCooldown')
+          } else {
+            localStorage.setItem(
+              'forgotPasswordCooldown',
+              (Date.now() + next * 1000).toString(),
+            )
+          }
+          return next
+        })
+      }, 1000)
     }
     return () => clearTimeout(timer)
   }, [countdown])
+
+  const startCooldown = (seconds: number) => {
+    setCountdown(seconds)
+    localStorage.setItem(
+      'forgotPasswordCooldown',
+      (Date.now() + seconds * 1000).toString(),
+    )
+  }
 
   const onSubmit = async (data: ForgotFormValues) => {
     if (countdown > 0) return
@@ -62,22 +93,44 @@ export default function ForgotPassword() {
     try {
       const email = data.email.trim()
 
+      let timeoutId: NodeJS.Timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           const err: any = new Error('upstream request timeout')
           err.status = 504
           reject(err)
         }, 15000)
       })
 
-      const { error } = await Promise.race([
+      const response = await Promise.race([
         supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         }),
         timeoutPromise,
-      ])
+      ]).finally(() => {
+        if (timeoutId) clearTimeout(timeoutId)
+      })
+
+      const error = response?.error
 
       if (error) {
+        const msg = String(error.message).toLowerCase()
+        if (
+          error.status === 429 ||
+          msg.includes('rate limit') ||
+          msg.includes('60 seconds') ||
+          (error as any).code === 'over_email_send_rate_limit'
+        ) {
+          startCooldown(60)
+          toast({
+            variant: 'destructive',
+            title: 'Muitas tentativas',
+            description:
+              'Limite de envios atingido. Aguarde alguns minutos antes de tentar novamente.',
+          })
+          setIsLoading(false)
+          return // Impede o throw para não disparar erro de uncaught promise no log
+        }
         throw error
       }
 
@@ -94,49 +147,45 @@ export default function ForgotPassword() {
 
       setSubmittedEmail(email)
       setIsSuccess(true)
-      setCountdown(60) // Prevent immediate resend
+      startCooldown(60) // Prevent immediate resend
     } catch (error: any) {
       let errorMessage =
         'Não foi possível enviar o e-mail de recuperação. Tente novamente mais tarde.'
 
-      if (error?.message) {
-        const msg = String(error.message).toLowerCase()
-        if (
-          msg.includes('rate limit') ||
-          msg.includes('60 seconds') ||
-          error.status === 429
-        ) {
-          setCountdown(60)
-          errorMessage =
-            'Muitas tentativas ou limite de envios atingido. Aguarde alguns minutos antes de tentar novamente.'
-        } else if (msg.includes('not allowed') || msg.includes('redirect')) {
-          errorMessage =
-            'Configuração de URL de redirecionamento inválida no servidor.'
-        } else if (
-          msg.includes('timeout') ||
-          msg.includes('gateway') ||
-          msg.includes('504') ||
-          error.status === 504
-        ) {
-          setSmtpError(true)
-          errorMessage =
-            'O servidor de e-mail demorou muito para responder (Timeout 504). Isso indica uma possível falha de conexão no provedor SMTP configurado.'
-        } else if (
-          msg.includes('v.from') ||
-          msg.includes('smtp') ||
-          msg.includes('sender') ||
-          msg.includes('email provider')
-        ) {
-          setSmtpError(true)
-          errorMessage =
-            'Falha de autenticação no provedor de e-mail (SMTP) do Supabase.'
-        } else {
-          errorMessage = `Falha reportada pelo servidor: ${error.message}`
-        }
-      } else if (error?.status === 504) {
+      const msg = String(error?.message || '').toLowerCase()
+
+      if (
+        error?.status === 429 ||
+        msg.includes('rate limit') ||
+        msg.includes('60 seconds') ||
+        error?.code === 'over_email_send_rate_limit'
+      ) {
+        startCooldown(60)
+        errorMessage =
+          'Muitas tentativas ou limite de envios atingido. Aguarde alguns minutos antes de tentar novamente.'
+      } else if (msg.includes('not allowed') || msg.includes('redirect')) {
+        errorMessage =
+          'Configuração de URL de redirecionamento inválida no servidor.'
+      } else if (
+        msg.includes('timeout') ||
+        msg.includes('gateway') ||
+        msg.includes('504') ||
+        error?.status === 504
+      ) {
         setSmtpError(true)
         errorMessage =
           'O servidor de e-mail demorou muito para responder (Timeout 504). Isso indica uma possível falha de conexão no provedor SMTP configurado.'
+      } else if (
+        msg.includes('v.from') ||
+        msg.includes('smtp') ||
+        msg.includes('sender') ||
+        msg.includes('email provider')
+      ) {
+        setSmtpError(true)
+        errorMessage =
+          'Falha de autenticação no provedor de e-mail (SMTP) do Supabase.'
+      } else if (error?.message) {
+        errorMessage = `Falha reportada pelo servidor: ${error.message}`
       }
 
       toast({
