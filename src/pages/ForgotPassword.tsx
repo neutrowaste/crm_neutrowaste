@@ -70,15 +70,16 @@ export default function ForgotPassword() {
         throw error
       }
 
-      await supabase
-        .from('logs')
-        .insert({
-          action: 'Recuperação de Senha',
-          details: `Solicitação de redefinição de senha enviada para: ${email}`,
-          lead_name: 'Sistema',
-          user_name: email,
-        })
-        .catch(console.error)
+      const { error: logError } = await supabase.from('logs').insert({
+        action: 'Recuperação de Senha',
+        details: `Solicitação de redefinição de senha enviada para: ${email}`,
+        lead_name: 'Sistema',
+        user_name: email,
+      })
+
+      if (logError) {
+        console.error('Log error:', logError)
+      }
 
       setSubmittedEmail(email)
       setIsSuccess(true)
