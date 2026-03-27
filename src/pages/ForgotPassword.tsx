@@ -123,31 +123,6 @@ export default function ForgotPassword() {
       }
     }
 
-    // Bypass para e-mails de teste conhecidos do usuário para evitar bloqueio da plataforma
-    const isTestEmail =
-      email.toLowerCase() === 'hlsvalle@gmail.com' ||
-      email.toLowerCase().includes('teste') ||
-      email.toLowerCase().includes('admin@')
-
-    if (isTestEmail) {
-      setTimeout(() => {
-        setSubmittedEmail(email)
-        setIsSuccess(true)
-        startCooldown(60)
-        setIsLoading(false)
-        supabase
-          .from('logs')
-          .insert({
-            action: 'Recuperação de Senha (Simulada)',
-            details: `Solicitação de redefinição de senha simulada para: ${email}`,
-            lead_name: 'Sistema',
-            user_name: email,
-          })
-          .then()
-      }, 1200)
-      return
-    }
-
     try {
       let timeoutId: NodeJS.Timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
