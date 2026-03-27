@@ -44,6 +44,13 @@ export default function ForgotPassword() {
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [smtpError, setSmtpError] = useState(false)
 
+  const form = useForm<ForgotFormValues>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: {
+      email: '',
+    },
+  })
+
   const [countdown, setCountdown] = useState(() => {
     const savedCooldown = localStorage.getItem('forgotPasswordCooldown')
     if (savedCooldown) {
