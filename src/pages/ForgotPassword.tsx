@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -37,6 +37,7 @@ export default function ForgotPassword() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [smtpError, setSmtpError] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
   const form = useForm<ForgotFormValues>({
     resolver: zodResolver(forgotSchema),
@@ -45,7 +46,17 @@ export default function ForgotPassword() {
     },
   })
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    }
+    return () => clearTimeout(timer)
+  }, [countdown])
+
   const onSubmit = async (data: ForgotFormValues) => {
+    if (countdown > 0) return
+
     setIsLoading(true)
     setSmtpError(false)
     try {
@@ -78,26 +89,26 @@ export default function ForgotPassword() {
       })
 
       if (logError) {
-        console.error('Log error:', logError)
+        console.warn('Falha ao registrar log de recuperação de senha.')
       }
 
       setSubmittedEmail(email)
       setIsSuccess(true)
+      setCountdown(60) // Prevent immediate resend
     } catch (error: any) {
-      console.error('Erro detalhado na recuperação de senha:', error)
-
       let errorMessage =
         'Não foi possível enviar o e-mail de recuperação. Tente novamente mais tarde.'
 
       if (error?.message) {
-        const msg = error.message.toLowerCase()
+        const msg = String(error.message).toLowerCase()
         if (
           msg.includes('rate limit') ||
           msg.includes('60 seconds') ||
           error.status === 429
         ) {
+          setCountdown(60)
           errorMessage =
-            'Por motivos de segurança, aguarde cerca de 1 minuto antes de solicitar um novo envio.'
+            'Muitas tentativas ou limite de envios atingido. Aguarde alguns minutos antes de tentar novamente.'
         } else if (msg.includes('not allowed') || msg.includes('redirect')) {
           errorMessage =
             'Configuração de URL de redirecionamento inválida no servidor.'
@@ -139,6 +150,14 @@ export default function ForgotPassword() {
   }
 
   const handleResend = () => {
+    if (countdown > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Aguarde',
+        description: `Por favor, aguarde ${countdown} segundos antes de tentar novamente.`,
+      })
+      return
+    }
     setIsSuccess(false)
     setSmtpError(false)
     form.reset({ email: submittedEmail })
@@ -276,8 +295,11 @@ export default function ForgotPassword() {
                     variant="ghost"
                     className="w-full text-sm"
                     onClick={handleResend}
+                    disabled={countdown > 0}
                   >
-                    Não recebi. Tentar novamente
+                    {countdown > 0
+                      ? `Aguarde ${countdown}s para tentar novamente`
+                      : 'Não recebi. Tentar novamente'}
                   </Button>
                 </div>
               </div>
@@ -297,7 +319,7 @@ export default function ForgotPassword() {
                           <Input
                             placeholder="voce@exemplo.com"
                             type="email"
-                            disabled={isLoading}
+                            disabled={isLoading || countdown > 0}
                             {...field}
                           />
                         </FormControl>
@@ -305,11 +327,17 @@ export default function ForgotPassword() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading || countdown > 0}
+                  >
                     {isLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Enviar link de recuperação
+                    {countdown > 0
+                      ? `Aguarde ${countdown}s`
+                      : 'Enviar link de recuperação'}
                   </Button>
                   <div className="mt-6 text-center text-sm">
                     <Link
