@@ -1,5 +1,6 @@
 {
   "_versions": {
-    "get-maps-config": 2
+    "get-maps-config": 2,
+    "send-email": 1
   }
 }
