@@ -133,7 +133,10 @@ export function Header() {
             >
               <Avatar className="h-9 w-9 border">
                 <AvatarImage
-                  src={`https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`}
+                  src={
+                    user?.avatarUrl ||
+                    `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`
+                  }
                 />
                 <AvatarFallback>
                   {user?.name.slice(0, 2).toUpperCase()}

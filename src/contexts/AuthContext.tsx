@@ -15,6 +15,7 @@ export interface User {
   role: 'Admin' | 'Seller'
   status?: string
   isOnline?: boolean
+  avatarUrl?: string
 }
 
 interface AuthContextType {
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: profile.role as 'Admin' | 'Seller',
               status: profile.status,
               isOnline: profile.is_online,
+              avatarUrl: profile.avatar_url,
             })
             supabase
               .from('profiles')
@@ -102,8 +104,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: p.role as 'Admin' | 'Seller',
             status: p.status,
             isOnline: p.is_online,
+            avatarUrl: p.avatar_url,
           })),
         )
+
+        if (user) {
+          const currentUserProfile = data.find((p) => p.id === user.id)
+          if (currentUserProfile) {
+            setUser((prev) => {
+              if (!prev) return null
+              if (
+                prev.name !== currentUserProfile.name ||
+                prev.role !== currentUserProfile.role ||
+                prev.status !== currentUserProfile.status ||
+                prev.isOnline !== currentUserProfile.is_online ||
+                prev.avatarUrl !== currentUserProfile.avatar_url
+              ) {
+                return {
+                  ...prev,
+                  name: currentUserProfile.name,
+                  role: currentUserProfile.role as 'Admin' | 'Seller',
+                  status: currentUserProfile.status,
+                  isOnline: currentUserProfile.is_online,
+                  avatarUrl: currentUserProfile.avatar_url,
+                }
+              }
+              return prev
+            })
+          }
+        }
       }
     }
     fetchUsers()

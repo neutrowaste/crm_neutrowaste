@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/components/ThemeProvider'
 import { supabase } from '@/lib/supabase/client'
@@ -41,7 +41,9 @@ import {
   Sun,
   LogOut,
   Users,
+  Camera,
 } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 export default function Settings() {
   const { user, logout } = useAuth()
@@ -50,7 +52,10 @@ export default function Settings() {
 
   // Profile Tab State
   const [name, setName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Company Tab State
   const [companyName, setCompanyName] = useState('')
@@ -69,8 +74,61 @@ export default function Settings() {
   useEffect(() => {
     if (user) {
       setName(user.name)
+      setAvatarUrl(user.avatarUrl || '')
     }
   }, [user])
+
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Formato inválido',
+        description: 'Por favor, selecione uma imagem (JPG, PNG).',
+      })
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const newAvatarUrl = data.publicUrl
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      setAvatarUrl(newAvatarUrl)
+      toast({
+        title: 'Foto atualizada',
+        description: 'Sua foto de perfil foi alterada com sucesso.',
+      })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao fazer upload',
+        description: error.message,
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
 
   const loadUsers = async () => {
     setIsLoadingUsers(true)
@@ -311,6 +369,57 @@ export default function Settings() {
                   }}
                   className="space-y-4 max-w-md"
                 >
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 pb-6 border-b border-border">
+                    <div className="relative group">
+                      <Avatar className="h-24 w-24 border-2 border-muted shadow-sm">
+                        <AvatarImage
+                          src={
+                            avatarUrl ||
+                            `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`
+                          }
+                        />
+                        <AvatarFallback className="text-2xl">
+                          {name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div
+                        className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        disabled={isUploadingAvatar}
+                      />
+                    </div>
+                    <div className="space-y-2 text-center sm:text-left flex-1 pt-2">
+                      <h3 className="font-medium text-base">Foto de Perfil</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Recomendamos imagens quadradas de pelo menos 256x256px.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                      >
+                        {isUploadingAvatar ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Camera className="h-4 w-4 mr-2" />
+                        )}
+                        Alterar foto
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome Completo</Label>
                     <Input
