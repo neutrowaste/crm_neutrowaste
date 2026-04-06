@@ -198,7 +198,10 @@ export default function ChatPage() {
                     <div className="relative">
                       <Avatar className="h-10 w-10 shrink-0">
                         <AvatarImage
-                          src={`https://img.usecurling.com/ppl/thumbnail?seed=${u.id}`}
+                          src={
+                            u.avatarUrl ||
+                            `https://img.usecurling.com/ppl/thumbnail?seed=${u.id}`
+                          }
                         />
                         <AvatarFallback>
                           {u.name.slice(0, 2).toUpperCase()}
@@ -256,7 +259,11 @@ export default function ChatPage() {
                 <div className="relative">
                   <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage
-                      src={`https://img.usecurling.com/ppl/thumbnail?seed=${activeChannel}`}
+                      src={
+                        allUsers.find((u) => u.id === activeChannel)
+                          ?.avatarUrl ||
+                        `https://img.usecurling.com/ppl/thumbnail?seed=${activeChannel}`
+                      }
                     />
                     <AvatarFallback>
                       <UserIcon className="h-4 w-4" />
@@ -304,7 +311,11 @@ export default function ChatPage() {
                   >
                     <Avatar className="h-8 w-8 shrink-0 shadow-sm hidden sm:flex">
                       <AvatarImage
-                        src={`https://img.usecurling.com/ppl/thumbnail?seed=${msg.userId}`}
+                        src={
+                          allUsers.find((u) => u.id === msg.userId)
+                            ?.avatarUrl ||
+                          `https://img.usecurling.com/ppl/thumbnail?seed=${msg.userId}`
+                        }
                       />
                       <AvatarFallback>
                         {msg.userName.slice(0, 2).toUpperCase()}
