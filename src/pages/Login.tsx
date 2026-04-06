@@ -170,17 +170,19 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 py-12 transition-colors">
       <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex w-full items-center justify-center">
           <img
             src={logoImg}
             alt="Neutrowaste Logo"
-            className="h-12 object-contain dark:brightness-200 dark:contrast-200"
+            className="h-14 object-contain dark:brightness-200 dark:contrast-200"
           />
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Login Seguro</CardTitle>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-semibold tracking-tight">
+              Login
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {lockoutUntil && Date.now() < lockoutUntil ? (
