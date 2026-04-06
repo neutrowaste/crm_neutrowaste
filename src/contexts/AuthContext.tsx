@@ -29,6 +29,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const getPublicAvatarUrl = (url: string | null) => {
+  if (!url) return undefined
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  return supabase.storage.from('avatars').getPublicUrl(url).data.publicUrl
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null)
@@ -79,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: profile.role as 'Admin' | 'Seller',
               status: profile.status,
               isOnline: profile.is_online,
-              avatarUrl: profile.avatar_url,
+              avatarUrl: getPublicAvatarUrl(profile.avatar_url),
             })
             supabase
               .from('profiles')
@@ -104,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: p.role as 'Admin' | 'Seller',
             status: p.status,
             isOnline: p.is_online,
-            avatarUrl: p.avatar_url,
+            avatarUrl: getPublicAvatarUrl(p.avatar_url),
           })),
         )
 
@@ -117,6 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return
             }
 
+            const newAvatarUrl = getPublicAvatarUrl(
+              currentUserProfile.avatar_url,
+            )
+
             setUser((prev) => {
               if (!prev) return null
               if (
@@ -124,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 prev.role !== currentUserProfile.role ||
                 prev.status !== currentUserProfile.status ||
                 prev.isOnline !== currentUserProfile.is_online ||
-                prev.avatarUrl !== currentUserProfile.avatar_url
+                prev.avatarUrl !== newAvatarUrl
               ) {
                 return {
                   ...prev,
@@ -132,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   role: currentUserProfile.role as 'Admin' | 'Seller',
                   status: currentUserProfile.status,
                   isOnline: currentUserProfile.is_online,
-                  avatarUrl: currentUserProfile.avatar_url,
+                  avatarUrl: newAvatarUrl,
                 }
               }
               return prev
