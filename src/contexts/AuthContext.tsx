@@ -111,6 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user) {
           const currentUserProfile = data.find((p) => p.id === user.id)
           if (currentUserProfile) {
+            if (currentUserProfile.status !== 'active') {
+              supabase.auth.signOut()
+              setUser(null)
+              return
+            }
+
             setUser((prev) => {
               if (!prev) return null
               if (
@@ -131,6 +137,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
               return prev
             })
+          } else {
+            supabase.auth.signOut()
+            setUser(null)
           }
         }
       }

@@ -42,6 +42,7 @@ import {
   LogOut,
   Users,
   Camera,
+  Trash2,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ImageCropperDialog } from '@/components/settings/ImageCropperDialog'
@@ -286,6 +287,30 @@ export default function Settings() {
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar status',
+        description: error.message,
+      })
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (
+      !window.confirm(
+        'Tem certeza que deseja excluir este usuário definitivamente? Esta ação não pode ser desfeita e removerá o acesso do usuário ao sistema.',
+      )
+    )
+      return
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+      if (error) throw error
+      toast({ title: 'Usuário excluído com sucesso' })
+      loadUsers()
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir usuário',
         description: error.message,
       })
     }
@@ -576,40 +601,59 @@ export default function Settings() {
                                       ? 'success'
                                       : u.status === 'pending'
                                         ? 'warning'
-                                        : 'destructive'
+                                        : u.status === 'inactive'
+                                          ? 'secondary'
+                                          : 'destructive'
                                   }
                                 >
                                   {u.status === 'active'
                                     ? 'Ativo'
                                     : u.status === 'pending'
                                       ? 'Pendente'
-                                      : 'Rejeitado'}
+                                      : u.status === 'inactive'
+                                        ? 'Inativo'
+                                        : 'Bloqueado'}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Select
-                                  value={u.status}
-                                  onValueChange={(val) =>
-                                    handleUpdateUserStatus(u.id, val)
-                                  }
-                                  disabled={u.id === user.id}
-                                >
-                                  <SelectTrigger className="w-36 h-8 text-xs ml-auto">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="active">
-                                      Aprovar Acesso
-                                    </SelectItem>
-                                    <SelectItem value="pending">
-                                      Pendente
-                                    </SelectItem>
-                                    <SelectItem value="rejected">
-                                      Bloquear Acesso
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
+                                <div className="flex items-center justify-end gap-2">
+                                  <Select
+                                    value={u.status}
+                                    onValueChange={(val) =>
+                                      handleUpdateUserStatus(u.id, val)
+                                    }
+                                    disabled={u.id === user.id}
+                                  >
+                                    <SelectTrigger className="w-32 h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="active">
+                                        Ativar
+                                      </SelectItem>
+                                      <SelectItem value="pending">
+                                        Pendente
+                                      </SelectItem>
+                                      <SelectItem value="inactive">
+                                        Inativar
+                                      </SelectItem>
+                                      <SelectItem value="rejected">
+                                        Bloquear
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    disabled={u.id === user.id}
+                                    title="Excluir Usuário"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>{' '}
                             </TableRow>
                           ))}
                           {users.length === 0 && (
