@@ -176,12 +176,6 @@ export default function Login() {
             alt="Neutrowaste Logo"
             className="h-12 object-contain dark:brightness-200 dark:contrast-200"
           />
-          <h2 className="mt-6 text-3xl font-bold tracking-tight">
-            Acesse sua conta
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Gerencie seus leads B2B de forma inteligente.
-          </p>
         </div>
 
         <Card>
