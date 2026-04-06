@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -25,26 +25,7 @@ export function ImageCropperDialog({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement | null>(null)
 
-  useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setImageSrc(url)
-      setZoom(1)
-      return () => URL.revokeObjectURL(url)
-    }
-  }, [file])
-
-  useEffect(() => {
-    if (!imageSrc || !canvasRef.current) return
-    const img = new Image()
-    img.onload = () => {
-      imageRef.current = img
-      draw()
-    }
-    img.src = imageSrc
-  }, [imageSrc, zoom])
-
-  const draw = () => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current
     const img = imageRef.current
     if (!canvas || !img) return
@@ -73,7 +54,34 @@ export function ImageCropperDialog({
       canvas.width,
       canvas.height,
     )
-  }
+  }, [zoom])
+
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setImageSrc(url)
+      setZoom(1)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [file])
+
+  useEffect(() => {
+    if (!imageSrc) return
+    const img = new Image()
+    img.onload = () => {
+      imageRef.current = img
+      draw()
+    }
+    img.src = imageSrc
+  }, [imageSrc]) // intentionally not depending on draw to avoid reload loop
+
+  useEffect(() => {
+    if (open) {
+      draw()
+      const timer = setTimeout(draw, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [open, draw])
 
   const handleConfirm = () => {
     if (!canvasRef.current || !file) return
