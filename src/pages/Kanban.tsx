@@ -33,9 +33,9 @@ import { cn } from '@/lib/utils'
 
 const columns = [
   { id: 'lead', title: 'Lead', statuses: ['Novo', 'Contatado'] },
-  { id: 'negotiation', title: 'Negotiation', statuses: ['Qualificado'] },
-  { id: 'contract_sent', title: 'Contract Sent', statuses: ['Proposta'] },
-  { id: 'signed', title: 'Signed', statuses: ['Ganho'] },
+  { id: 'negotiation', title: 'Negociação', statuses: ['Qualificado'] },
+  { id: 'contract_sent', title: 'Contrato Enviado', statuses: ['Proposta'] },
+  { id: 'signed', title: 'Assinado', statuses: ['Ganho'] },
 ]
 
 export default function KanbanPage() {
@@ -164,7 +164,7 @@ export default function KanbanPage() {
       <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Sales Funnel (Kanban)
+            Funil de Vendas (Kanban)
           </h1>
           <p className="text-muted-foreground">
             Gerencie leads e contratos arrastando os cartões entre as colunas.
@@ -261,7 +261,7 @@ export default function KanbanPage() {
                               onClick={() => setFollowUpLead(lead)}
                             >
                               <Send className="w-3 h-3 mr-2" />
-                              Send Follow-up
+                              Enviar Follow-up
                             </Button>
                             {lead.lastFollowUp && (
                               <p className="text-[10px] text-center text-muted-foreground mt-1.5">
