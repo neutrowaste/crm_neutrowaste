@@ -7,6 +7,7 @@ import { TeamPerformance } from '@/components/dashboard/TeamPerformance'
 import { PendingSignatures } from '@/components/dashboard/PendingSignatures'
 import { ContractsChart } from '@/components/dashboard/ContractsChart'
 import { PredictiveAnalysis } from '@/components/dashboard/PredictiveAnalysis'
+import { RevenueByStatusChart } from '@/components/dashboard/RevenueByStatusChart'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -120,9 +121,10 @@ export default function Index() {
         <TabsContent value="geral" className="space-y-8 mt-4">
           <Metrics timeFilter={timeFilter} />
 
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
             <ContractsChart timeFilter={timeFilter} />
             <SalesFunnel timeFilter={timeFilter} />
+            <RevenueByStatusChart timeFilter={timeFilter} />
           </div>
 
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">

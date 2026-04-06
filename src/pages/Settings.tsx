@@ -44,6 +44,7 @@ import {
   Camera,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { ImageCropperDialog } from '@/components/settings/ImageCropperDialog'
 
 export default function Settings() {
   const { user, logout } = useAuth()
@@ -55,6 +56,8 @@ export default function Settings() {
   const [avatarUrl, setAvatarUrl] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [cropFile, setCropFile] = useState<File | null>(null)
+  const [cropOpen, setCropOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Company Tab State
@@ -78,9 +81,7 @@ export default function Settings() {
     }
   }, [user])
 
-  const handleAvatarUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !user) return
 
@@ -93,6 +94,14 @@ export default function Settings() {
       return
     }
 
+    setCropFile(file)
+    setCropOpen(true)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user) return
+    setCropOpen(false)
     setIsUploadingAvatar(true)
     try {
       const fileExt = file.name.split('.').pop()
@@ -393,8 +402,14 @@ export default function Settings() {
                         ref={fileInputRef}
                         className="hidden"
                         accept="image/*"
-                        onChange={handleAvatarUpload}
+                        onChange={handleFileSelect}
                         disabled={isUploadingAvatar}
+                      />
+                      <ImageCropperDialog
+                        file={cropFile}
+                        open={cropOpen}
+                        onOpenChange={setCropOpen}
+                        onCrop={handleAvatarUpload}
                       />
                     </div>
                     <div className="space-y-2 text-center sm:text-left flex-1 pt-2">

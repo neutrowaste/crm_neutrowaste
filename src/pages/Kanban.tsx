@@ -28,8 +28,13 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { format, differenceInDays, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Send, Clock, AlertTriangle } from 'lucide-react'
+import { Send, Clock, AlertTriangle, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 const columns = [
   { id: 'lead', title: 'Lead', statuses: ['Novo', 'Contatado'] },
@@ -39,7 +44,8 @@ const columns = [
 ]
 
 export default function KanbanPage() {
-  const { leads, updateLead } = useLeads()
+  const { leads, updateLead, notifications, markNotificationsAsRead } =
+    useLeads()
   const { addLog } = useLogs()
   const { user } = useAuth()
   const { templates } = useTemplates()
@@ -71,6 +77,11 @@ export default function KanbanPage() {
     const lead = leads.find((l) => l.id === leadId)
     if (lead && lead.status !== newStatus) {
       await updateLead(leadId, { status: newStatus as any })
+
+      toast({
+        title: 'Lead Movido',
+        description: `${lead.name} foi movido para ${newStatus}.`,
+      })
 
       if (user) {
         await addLog({
@@ -169,6 +180,60 @@ export default function KanbanPage() {
           <p className="text-muted-foreground">
             Gerencie leads e contratos arrastando os cartões entre as colunas.
           </p>
+        </div>
+        <div className="flex items-center">
+          <Popover
+            onOpenChange={(open) => {
+              if (!open) markNotificationsAsRead()
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="relative">
+                <Bell className="h-4 w-4" />
+                {notifications.filter((n) => !n.read).length > 0 && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm border-b pb-2">
+                  Notificações
+                </h4>
+                <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhuma notificação
+                    </p>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className={cn(
+                          'text-sm p-2 rounded-md',
+                          notif.read ? 'bg-background' : 'bg-muted/50',
+                        )}
+                      >
+                        <p
+                          className={
+                            notif.read ? 'text-muted-foreground' : 'font-medium'
+                          }
+                        >
+                          {notif.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(
+                            new Date(notif.createdAt),
+                            'dd/MM/yyyy HH:mm',
+                          )}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
