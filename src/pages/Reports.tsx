@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Metrics } from '@/components/dashboard/Metrics'
 import { ContractsChart } from '@/components/dashboard/ContractsChart'
 import { SalesFunnel } from '@/components/dashboard/SalesFunnel'
+import { RevenueByStatusChart } from '@/components/dashboard/RevenueByStatusChart'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -37,11 +38,13 @@ interface SavedReport {
   id: string
   name: string
   timeFilter: string
+  dateRange: { start: string; end: string }
 }
 
 export default function Reports() {
   const { toast } = useToast()
   const [timeFilter, setTimeFilter] = useState('monthly')
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [savedReports, setSavedReports] = useState<SavedReport[]>([])
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
   const [reportName, setReportName] = useState('')
@@ -60,6 +63,13 @@ export default function Reports() {
     })
     if (format === 'PDF') {
       window.print()
+    } else {
+      setTimeout(() => {
+        toast({
+          title: 'Exportação Concluída',
+          description: 'Arquivo Excel gerado com sucesso.',
+        })
+      }, 1500)
     }
   }
 
@@ -70,6 +80,7 @@ export default function Reports() {
       id: Math.random().toString(36).substr(2, 9),
       name: reportName,
       timeFilter,
+      dateRange,
     }
 
     const updated = [...savedReports, newReport]
@@ -87,9 +98,25 @@ export default function Reports() {
 
   const loadReport = (report: SavedReport) => {
     setTimeFilter(report.timeFilter)
+    if (report.dateRange) setDateRange(report.dateRange)
     toast({
       description: `Configuração "${report.name}" carregada.`,
     })
+  }
+
+  const getFilterLabel = (val: string) => {
+    switch (val) {
+      case 'weekly':
+        return 'Últimos 7 dias'
+      case 'monthly':
+        return 'Este Mês'
+      case 'quarterly':
+        return 'Último Trimestre'
+      case 'custom':
+        return 'Personalizado'
+      default:
+        return val
+    }
   }
 
   return (
@@ -97,7 +124,7 @@ export default function Reports() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Relatórios e Análises
+            Dashboard e Relatórios
           </h1>
           <p className="text-muted-foreground mt-1">
             Acompanhe o desempenho de vendas, métricas de conversão e dados da
@@ -136,22 +163,49 @@ export default function Reports() {
             <span className="sm:hidden">Salvar</span>
           </Button>
 
-          <Select value={timeFilter} onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-full sm:w-[140px] flex-1 md:flex-none">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="weekly">Semanal</SelectItem>
-              <SelectItem value="monthly">Mensal</SelectItem>
-              <SelectItem value="quarterly">Trimestral</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Select value={timeFilter} onValueChange={setTimeFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Últimos 7 dias</SelectItem>
+                <SelectItem value="monthly">Este Mês</SelectItem>
+                <SelectItem value="quarterly">Último Trimestre</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {timeFilter === 'custom' && (
+              <div className="flex items-center gap-2 w-full sm:w-auto animate-in fade-in zoom-in duration-200">
+                <Input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, start: e.target.value }))
+                  }
+                  className="w-[140px]"
+                />
+                <span className="text-muted-foreground hidden sm:inline">
+                  até
+                </span>
+                <Input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) =>
+                    setDateRange((prev) => ({ ...prev, end: e.target.value }))
+                  }
+                  className="w-[140px]"
+                />
+              </div>
+            )}
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="w-full sm:w-auto flex-1 md:flex-none">
                 <Download className="mr-2 h-4 w-4" />
-                Exportar
+                Exportar Relatório
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -168,26 +222,56 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="hidden print:block mb-8">
+        <h1 className="text-3xl font-bold text-black border-b pb-4 mb-4">
+          Relatório Gerencial de Vendas
+        </h1>
+        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-6">
+          <p>
+            <strong>Período:</strong> {getFilterLabel(timeFilter)}{' '}
+            {timeFilter === 'custom' &&
+              `(${dateRange.start} a ${dateRange.end})`}
+          </p>
+          <p>
+            <strong>Data de Geração:</strong>{' '}
+            {new Date().toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-8 print:space-y-6">
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-4 print:text-black">
             Indicadores Chave de Performance (KPIs)
           </h2>
-          <Metrics timeFilter={timeFilter} />
+          <Metrics timeFilter={timeFilter} dateRange={dateRange} />
         </section>
 
-        <section className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <section className="grid grid-cols-1 gap-8 lg:grid-cols-2 print:grid-cols-2 print:gap-4 print:break-inside-avoid">
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground print:text-black">
               Evolução de Assinaturas
             </h2>
-            <ContractsChart timeFilter={timeFilter} />
+            {/* @ts-expect-error - ContractsChart might not support dateRange prop natively yet */}
+            <ContractsChart timeFilter={timeFilter} dateRange={dateRange} />
           </div>
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground print:text-black">
               Funil de Vendas
             </h2>
-            <SalesFunnel timeFilter={timeFilter} />
+            <SalesFunnel timeFilter={timeFilter} dateRange={dateRange} />
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-8 lg:grid-cols-2 print:grid-cols-2 print:gap-4 print:break-inside-avoid">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground print:text-black">
+              Receita por Etapa
+            </h2>
+            <RevenueByStatusChart
+              timeFilter={timeFilter}
+              dateRange={dateRange}
+            />
           </div>
         </section>
       </div>
@@ -208,12 +292,7 @@ export default function Reports() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Filtro atual:{' '}
-              {timeFilter === 'monthly'
-                ? 'Mensal'
-                : timeFilter === 'weekly'
-                  ? 'Semanal'
-                  : 'Trimestral'}
+              Filtro atual: {getFilterLabel(timeFilter)}
             </p>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">

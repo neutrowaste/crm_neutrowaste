@@ -13,25 +13,38 @@ import {
 import { useLeads } from '@/contexts/LeadsContext'
 import { useMemo } from 'react'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
-import { subDays } from 'date-fns'
+import { subDays, startOfMonth } from 'date-fns'
+
+interface Props {
+  timeFilter?: string
+  dateRange?: { start: string; end: string }
+}
 
 export function RevenueByStatusChart({
   timeFilter = 'monthly',
-}: {
-  timeFilter?: string
-}) {
+  dateRange,
+}: Props) {
   const { leads } = useLeads()
 
   const data = useMemo(() => {
-    let days = 30
-    if (timeFilter === 'weekly') days = 7
-    if (timeFilter === 'quarterly') days = 90
+    let startDate = subDays(new Date(), 30)
+    let endDate = new Date()
 
-    const startDate = subDays(new Date(), days)
+    if (timeFilter === 'weekly') startDate = subDays(new Date(), 7)
+    if (timeFilter === 'monthly') startDate = startOfMonth(new Date())
+    if (timeFilter === 'quarterly') startDate = subDays(new Date(), 90)
+    if (timeFilter === 'custom' && dateRange?.start) {
+      startDate = new Date(dateRange.start)
+      if (dateRange.end) {
+        endDate = new Date(dateRange.end)
+        endDate.setHours(23, 59, 59, 999)
+      }
+    }
 
-    const filteredLeads = leads.filter(
-      (l) => new Date(l.updatedAt) >= startDate,
-    )
+    const filteredLeads = leads.filter((l) => {
+      const d = new Date(l.updatedAt || l.created_at)
+      return d >= startDate && d <= endDate
+    })
 
     const stages = [
       { id: 'Novo', label: 'Novo' },
@@ -52,7 +65,7 @@ export function RevenueByStatusChart({
         value: totalValue,
       }
     })
-  }, [leads, timeFilter])
+  }, [leads, timeFilter, dateRange])
 
   return (
     <Card className="h-full flex flex-col">

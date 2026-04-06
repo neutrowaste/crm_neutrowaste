@@ -3,23 +3,37 @@ import { useLeads } from '@/contexts/LeadsContext'
 import { useContracts } from '@/contexts/ContractsContext'
 import { FileText, Percent, Clock, DollarSign } from 'lucide-react'
 import { useMemo } from 'react'
-import { subDays } from 'date-fns'
+import { subDays, startOfMonth } from 'date-fns'
 
-export function Metrics({ timeFilter = 'monthly' }: { timeFilter?: string }) {
+interface MetricsProps {
+  timeFilter?: string
+  dateRange?: { start: string; end: string }
+}
+
+export function Metrics({ timeFilter = 'monthly', dateRange }: MetricsProps) {
   const { leads } = useLeads()
   const { contracts } = useContracts()
 
   const { totalContracts, conversionRate, pendingSignatures, revenue } =
     useMemo(() => {
-      let days = 30
-      if (timeFilter === 'weekly') days = 7
-      if (timeFilter === 'quarterly') days = 90
+      let startDate = subDays(new Date(), 30)
+      let endDate = new Date()
 
-      const startDate = subDays(new Date(), days)
+      if (timeFilter === 'weekly') startDate = subDays(new Date(), 7)
+      if (timeFilter === 'monthly') startDate = startOfMonth(new Date())
+      if (timeFilter === 'quarterly') startDate = subDays(new Date(), 90)
+      if (timeFilter === 'custom' && dateRange?.start) {
+        startDate = new Date(dateRange.start)
+        if (dateRange.end) {
+          endDate = new Date(dateRange.end)
+          endDate.setHours(23, 59, 59, 999)
+        }
+      }
 
-      const filteredContracts = contracts.filter(
-        (c) => new Date(c.updatedAt) >= startDate,
-      )
+      const filteredContracts = contracts.filter((c) => {
+        const d = new Date(c.updatedAt || c.created_at)
+        return d >= startDate && d <= endDate
+      })
 
       const total = filteredContracts.length
       const signed = filteredContracts.filter(
@@ -43,7 +57,7 @@ export function Metrics({ timeFilter = 'monthly' }: { timeFilter?: string }) {
         pendingSignatures: pending,
         revenue: rev,
       }
-    }, [contracts, leads, timeFilter])
+    }, [contracts, leads, timeFilter, dateRange])
 
   const metrics = [
     {
