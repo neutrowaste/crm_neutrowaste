@@ -158,6 +158,13 @@ export default function ForgotPassword() {
         })
         .then()
 
+      // Invoca a mesma rotina de e-mail integrada utilizada no cadastro
+      supabase.functions
+        .invoke('send-email', {
+          body: { email, type: 'password_reset' },
+        })
+        .catch(console.error)
+
       setSubmittedEmail(email)
       setIsSuccess(true)
       startCooldown(60)

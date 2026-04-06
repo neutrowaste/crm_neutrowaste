@@ -238,8 +238,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     supabase.functions
-      .invoke('send-welcome-email', {
-        body: { email, name },
+      .invoke('send-email', {
+        body: { email, type: 'welcome', data: { name } },
       })
       .catch(console.error)
   }

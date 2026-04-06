@@ -1,0 +1,50 @@
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+import { corsHeaders } from '../_shared/cors.ts'
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { email, type, data } = await req.json()
+
+    // Log para simulação do envio de e-mail.
+    // Em produção, isso pode ser integrado com Resend, SendGrid, Amazon SES, etc.
+    console.log(
+      `[Email Service] Preparando envio de e-mail para: ${email} | Tipo: ${type}`,
+    )
+
+    let subject = ''
+    let body = ''
+
+    if (type === 'welcome') {
+      subject = 'Cadastro Recebido - Neutrowaste CRM'
+      body = `Olá ${data?.name || ''}, seu cadastro foi realizado com sucesso. Sua solicitação está em análise pelo administrador. Você será notificado assim que o acesso for liberado.`
+    } else if (type === 'password_reset') {
+      subject = 'Recuperação de Senha - Neutrowaste CRM'
+      body = `Olá, recebemos uma solicitação de recuperação de senha para a sua conta. As instruções de redefinição seguras foram acionadas pelo sistema.`
+    } else {
+      subject = 'Notificação do Sistema - Neutrowaste CRM'
+      body = `Você tem uma nova notificação.`
+    }
+
+    console.log(`[Email Service] Assunto: ${subject}`)
+    console.log(`[Email Service] Corpo: ${body}`)
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Email do tipo '${type}' processado com sucesso.`,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      },
+    )
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+})
