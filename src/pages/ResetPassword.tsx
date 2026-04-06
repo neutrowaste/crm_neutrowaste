@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Loader2, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 
 const resetSchema = z
   .object({
@@ -41,6 +41,8 @@ export default function ResetPassword() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const form = useForm<ResetFormValues>({
     resolver: zodResolver(resetSchema),
@@ -128,12 +130,34 @@ export default function ResetPassword() {
                       <FormItem>
                         <FormLabel>Nova senha</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              placeholder="••••••••"
+                              type={showPassword ? 'text' : 'password'}
+                              disabled={isLoading}
+                              className="pr-10"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                              disabled={isLoading}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showPassword
+                                  ? 'Ocultar senha'
+                                  : 'Mostrar senha'}
+                              </span>
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -146,12 +170,36 @@ export default function ResetPassword() {
                       <FormItem>
                         <FormLabel>Confirme a nova senha</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              placeholder="••••••••"
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              disabled={isLoading}
+                              className="pr-10"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              disabled={isLoading}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showConfirmPassword
+                                  ? 'Ocultar senha'
+                                  : 'Mostrar senha'}
+                              </span>
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -30,12 +30,13 @@ const MAX_ATTEMPTS = 5
 const LOCKOUT_MINUTES = 15
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, user, isLoading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
 
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
   const [serverErrorMsg, setServerErrorMsg] = useState<string | null>(null)
@@ -47,6 +48,12 @@ export default function Login() {
       password: '',
     },
   })
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   useEffect(() => {
     if (location.state?.message) {
@@ -237,12 +244,34 @@ export default function Login() {
                           </Link>
                         </div>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              placeholder="••••••••"
+                              type={showPassword ? 'text' : 'password'}
+                              disabled={isLoading}
+                              className="pr-10"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                              disabled={isLoading}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showPassword
+                                  ? 'Ocultar senha'
+                                  : 'Mostrar senha'}
+                              </span>
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
