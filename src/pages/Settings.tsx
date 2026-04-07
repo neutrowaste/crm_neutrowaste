@@ -43,9 +43,11 @@ import {
   Users,
   Camera,
   Trash2,
+  UserPlus,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ImageCropperDialog } from '@/components/settings/ImageCropperDialog'
+import { CreateUserDialog } from '@/components/settings/CreateUserDialog'
 
 export default function Settings() {
   const { user, logout } = useAuth()
@@ -74,6 +76,7 @@ export default function Settings() {
   // Users Tab State
   const [users, setUsers] = useState<any[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -542,14 +545,29 @@ export default function Settings() {
           {user?.role === 'Admin' && (
             <TabsContent value="users" className="mt-0 outline-none">
               <Card className="border-none shadow-none bg-transparent">
-                <CardHeader className="px-0 pt-0">
-                  <CardTitle>Gestão de Usuários</CardTitle>
-                  <CardDescription>
-                    Aprove solicitações de acesso e gerencie as permissões da
-                    equipe.
-                  </CardDescription>
+                <CardHeader className="px-0 pt-0 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <CardTitle>Gestão de Usuários</CardTitle>
+                    <CardDescription>
+                      Aprove solicitações de acesso e gerencie as permissões da
+                      equipe.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setIsCreateUserOpen(true)}
+                    size="sm"
+                    className="shrink-0"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Novo Usuário
+                  </Button>
                 </CardHeader>
                 <CardContent className="px-0">
+                  <CreateUserDialog
+                    open={isCreateUserOpen}
+                    onOpenChange={setIsCreateUserOpen}
+                    onSuccess={loadUsers}
+                  />
                   {isLoadingUsers ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
