@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import {
   Dialog,
@@ -21,54 +21,54 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 
-interface CreateUserDialogProps {
+interface EditUserDialogProps {
+  user: any
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
 }
 
-export function CreateUserDialog({
+export function EditUserDialog({
+  user,
   open,
   onOpenChange,
   onSuccess,
-}: CreateUserDialogProps) {
+}: EditUserDialogProps) {
   const { toast } = useToast()
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState('Seller')
+  const [role, setRole] = useState('')
+  const [status, setStatus] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '')
+      setRole(user.role || 'Seller')
+      setStatus(user.status || 'pending')
+    }
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: { email, password, name, role },
-      })
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name, role, status })
+        .eq('id', user.id)
 
       if (error) throw error
-      if (data?.error) throw new Error(data.error)
-
-      // Envia email de convite com a senha
-      await supabase.functions.invoke('send-email', {
-        body: { email, type: 'welcome_new_user', data: { name, password } },
-      })
 
       toast({
-        title: 'Usuário criado',
-        description: 'O usuário foi cadastrado e o convite enviado por e-mail.',
+        title: 'Usuário atualizado',
+        description: 'As informações do usuário foram salvas com sucesso.',
       })
       onSuccess()
       onOpenChange(false)
-      setName('')
-      setEmail('')
-      setPassword('')
-      setRole('Seller')
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Erro ao criar usuário',
+        title: 'Erro ao atualizar usuário',
         description: err.message,
       })
     } finally {
@@ -81,54 +81,56 @@ export function CreateUserDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Novo Usuário</DialogTitle>
+            <DialogTitle>Editar Usuário</DialogTitle>
             <DialogDescription>
-              Cadastre um novo membro da equipe e defina seu perfil de acesso.
+              Atualize as informações de perfil, acesso e status do colaborador.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome Completo</Label>
+              <Label htmlFor="edit-name">Nome Completo</Label>
               <Input
-                id="name"
+                id="edit-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nome do usuário"
                 required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="edit-email">E-mail</Label>
               <Input
-                id="email"
+                id="edit-email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemplo.com"
-                required
+                value={user?.email || ''}
+                disabled
               />
+              <p className="text-xs text-muted-foreground">
+                O e-mail não pode ser alterado por aqui.
+              </p>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Senha Temporária</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                required
-                minLength={6}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="role">Perfil de Acesso</Label>
+              <Label htmlFor="edit-role">Perfil de Acesso</Label>
               <Select value={role} onValueChange={setRole}>
-                <SelectTrigger id="role">
+                <SelectTrigger id="edit-role">
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Seller">Vendedor</SelectItem>
                   <SelectItem value="Admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger id="edit-status">
+                  <SelectValue placeholder="Selecione um status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                  <SelectItem value="rejected">Bloqueado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -144,7 +146,7 @@ export function CreateUserDialog({
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Criar Usuário
+              Salvar Alterações
             </Button>
           </DialogFooter>
         </form>

@@ -89,7 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
             supabase
               .from('profiles')
-              .update({ is_online: true })
+              .update({
+                is_online: true,
+                last_sign_in_at: new Date().toISOString(),
+              })
               .eq('id', profile.id)
               .then()
           }

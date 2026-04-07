@@ -44,10 +44,14 @@ import {
   Camera,
   Trash2,
   UserPlus,
+  Edit2,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ImageCropperDialog } from '@/components/settings/ImageCropperDialog'
 import { CreateUserDialog } from '@/components/settings/CreateUserDialog'
+import { EditUserDialog } from '@/components/settings/EditUserDialog'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export default function Settings() {
   const { user, logout } = useAuth()
@@ -77,6 +81,7 @@ export default function Settings() {
   const [users, setUsers] = useState<any[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<any>(null)
 
   useEffect(() => {
     if (user) {
@@ -277,24 +282,6 @@ export default function Settings() {
     }
   }
 
-  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', userId)
-      if (error) throw error
-      toast({ title: 'Status do usuário atualizado com sucesso' })
-      loadUsers()
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar status',
-        description: error.message,
-      })
-    }
-  }
-
   const handleDeleteUser = async (userId: string) => {
     if (
       !window.confirm(
@@ -314,24 +301,6 @@ export default function Settings() {
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir usuário',
-        description: error.message,
-      })
-    }
-  }
-
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId)
-      if (error) throw error
-      toast({ title: 'Perfil do usuário atualizado com sucesso' })
-      loadUsers()
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar perfil',
         description: error.message,
       })
     }
@@ -568,6 +537,17 @@ export default function Settings() {
                     onOpenChange={setIsCreateUserOpen}
                     onSuccess={loadUsers}
                   />
+                  {editingUser && (
+                    <EditUserDialog
+                      user={editingUser}
+                      open={!!editingUser}
+                      onOpenChange={(open) => !open && setEditingUser(null)}
+                      onSuccess={() => {
+                        setEditingUser(null)
+                        loadUsers()
+                      }}
+                    />
+                  )}
                   {isLoadingUsers ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -577,40 +557,42 @@ export default function Settings() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Nome</TableHead>
+                            <TableHead>Usuário</TableHead>
                             <TableHead>E-mail</TableHead>
                             <TableHead>Perfil</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ação</TableHead>
+                            <TableHead>Último Acesso</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {users.map((u) => (
                             <TableRow key={u.id}>
                               <TableCell className="font-medium">
-                                {u.name}
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`w-2 h-2 rounded-full shrink-0 ${
+                                      u.is_online
+                                        ? 'bg-green-500'
+                                        : 'bg-muted-foreground/30'
+                                    }`}
+                                    title={u.is_online ? 'Online' : 'Offline'}
+                                  />
+                                  <span>{u.name}</span>
+                                </div>
                               </TableCell>
-                              <TableCell>{u.email}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {u.email}
+                              </TableCell>
                               <TableCell>
-                                <Select
-                                  value={u.role}
-                                  onValueChange={(val) =>
-                                    handleUpdateUserRole(u.id, val)
-                                  }
-                                  disabled={u.id === user.id}
+                                <Badge
+                                  variant="outline"
+                                  className="font-normal bg-muted/50"
                                 >
-                                  <SelectTrigger className="w-32 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Admin">
-                                      Administrador
-                                    </SelectItem>
-                                    <SelectItem value="Seller">
-                                      Vendedor
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                  {u.role === 'Admin'
+                                    ? 'Administrador'
+                                    : 'Vendedor'}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <Badge
@@ -633,33 +615,26 @@ export default function Settings() {
                                         : 'Bloqueado'}
                                 </Badge>
                               </TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {u.last_sign_in_at
+                                  ? format(
+                                      new Date(u.last_sign_in_at),
+                                      "dd/MM/yyyy 'às' HH:mm",
+                                      { locale: ptBR },
+                                    )
+                                  : 'Nunca acessou'}
+                              </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Select
-                                    value={u.status}
-                                    onValueChange={(val) =>
-                                      handleUpdateUserStatus(u.id, val)
-                                    }
-                                    disabled={u.id === user.id}
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setEditingUser(u)}
+                                    title="Editar Usuário"
                                   >
-                                    <SelectTrigger className="w-32 h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="active">
-                                        Ativar
-                                      </SelectItem>
-                                      <SelectItem value="pending">
-                                        Pendente
-                                      </SelectItem>
-                                      <SelectItem value="inactive">
-                                        Inativar
-                                      </SelectItem>
-                                      <SelectItem value="rejected">
-                                        Bloquear
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -671,13 +646,13 @@ export default function Settings() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              </TableCell>{' '}
+                              </TableCell>
                             </TableRow>
                           ))}
                           {users.length === 0 && (
                             <TableRow>
                               <TableCell
-                                colSpan={5}
+                                colSpan={6}
                                 className="text-center py-6 text-muted-foreground"
                               >
                                 Nenhum usuário encontrado.
