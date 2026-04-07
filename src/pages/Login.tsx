@@ -14,7 +14,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
@@ -168,132 +167,157 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 py-12 transition-colors">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex w-full items-center justify-center">
+    <div className="container relative min-h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-background transition-colors">
+      <div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
+        <div className="absolute inset-0 bg-zinc-900">
+          <img
+            src="https://img.usecurling.com/p/1080/1920?q=environment%20nature%20sustainability&color=black"
+            alt="Background"
+            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
+          />
+        </div>
+        <div className="relative z-20 flex items-center gap-3 text-lg font-medium">
           <img
             src={logoImg}
             alt="Neutrowaste Logo"
-            className="h-14 object-contain dark:brightness-200 dark:contrast-200"
+            className="h-8 object-contain brightness-0 invert"
           />
+          <span>Neutrowaste CRM</span>
         </div>
+        <div className="relative z-20 mt-auto">
+          <blockquote className="space-y-2">
+            <p className="text-lg font-medium leading-relaxed">
+              &ldquo;Transformando a gestão de resíduos com tecnologia e
+              sustentabilidade para um futuro mais limpo e eficiente.&rdquo;
+            </p>
+            <footer className="text-sm text-zinc-300">
+              Equipe Neutrowaste
+            </footer>
+          </blockquote>
+        </div>
+      </div>
+      <div className="p-4 py-12 lg:p-8 flex h-full items-center">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center">
+            <img
+              src={logoImg}
+              alt="Neutrowaste Logo"
+              className="h-12 w-auto mx-auto mb-4 object-contain dark:brightness-200 dark:contrast-200 lg:hidden"
+            />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Entrar na conta
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Insira seu e-mail e senha para acessar o portal
+            </p>
+          </div>
 
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
-              Login
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {lockoutUntil && Date.now() < lockoutUntil ? (
-              <div className="p-4 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 rounded-md text-sm text-center font-medium">
-                Conta temporariamente bloqueada. Tente novamente mais tarde.
-              </div>
-            ) : (
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  {serverErrorMsg && (
-                    <div className="rounded-md bg-destructive/10 p-3 border border-destructive/20 text-sm flex gap-2 text-destructive">
-                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                      <div>
-                        <strong>Erro de Servidor:</strong>
-                        <p className="opacity-90 text-xs mt-1">
-                          {serverErrorMsg}
-                        </p>
-                      </div>
+          {lockoutUntil && Date.now() < lockoutUntil ? (
+            <div className="p-4 bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-200 rounded-md text-sm text-center font-medium">
+              Conta temporariamente bloqueada. Tente novamente mais tarde.
+            </div>
+          ) : (
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-5"
+              >
+                {serverErrorMsg && (
+                  <div className="rounded-md bg-destructive/10 p-3 border border-destructive/20 text-sm flex gap-2 text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Erro de Servidor:</strong>
+                      <p className="opacity-90 text-xs mt-1">
+                        {serverErrorMsg}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail</FormLabel>
-                        <FormControl>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="voce@exemplo.com"
+                          type="email"
+                          disabled={isLoading}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Senha</FormLabel>
+                        <Link
+                          to="/forgot-password"
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Esqueceu a senha?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <div className="relative">
                           <Input
-                            placeholder="voce@exemplo.com"
-                            type="email"
+                            placeholder="••••••••"
+                            type={showPassword ? 'text' : 'password'}
                             disabled={isLoading}
+                            className="pr-10"
                             {...field}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel>Senha</FormLabel>
-                          <Link
-                            to="/forgot-password"
-                            className="text-sm font-medium text-primary hover:underline"
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={isLoading}
                           >
-                            Esqueceu sua senha?
-                          </Link>
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span className="sr-only">
+                              {showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                            </span>
+                          </Button>
                         </div>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              placeholder="••••••••"
-                              type={showPassword ? 'text' : 'password'}
-                              disabled={isLoading}
-                              className="pr-10"
-                              {...field}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowPassword(!showPassword)}
-                              disabled={isLoading}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className="sr-only">
-                                {showPassword
-                                  ? 'Ocultar senha'
-                                  : 'Mostrar senha'}
-                              </span>
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Entrar
-                  </Button>
-                </form>
-              </Form>
-            )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Acessar
+                </Button>
+              </form>
+            </Form>
+          )}
 
-            <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Não tem uma conta? </span>
-              <Link
-                to="/register"
-                className="font-medium text-primary hover:underline"
-              >
-                Criar Conta
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="px-8 text-center text-sm text-muted-foreground">
+            Ainda não tem uma conta?{' '}
+            <Link
+              to="/register"
+              className="underline underline-offset-4 hover:text-primary"
+            >
+              Criar Conta
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )
