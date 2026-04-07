@@ -164,19 +164,13 @@ export default function Login() {
 
       <div className="w-full max-w-[420px] bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-slate-100 dark:border-zinc-800 p-6 sm:p-10 relative z-10 animate-fade-in-up duration-500">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-16 flex items-center justify-center mb-4">
+          <div className="h-16 flex items-center justify-center">
             <img
               src={logoImg}
               alt="Neutrowaste Logo"
               className="h-12 w-auto object-contain dark:brightness-200"
             />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            Acesse sua conta
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center">
-            Bem-vindo ao Portal de Atendimento
-          </p>
         </div>
 
         {lockoutUntil && Date.now() < lockoutUntil ? (
