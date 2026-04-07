@@ -16,6 +16,7 @@ export interface User {
   status?: string
   isOnline?: boolean
   avatarUrl?: string
+  forcePasswordChange?: boolean
 }
 
 interface AuthContextType {
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               status: profile.status,
               isOnline: profile.is_online,
               avatarUrl: getPublicAvatarUrl(profile.avatar_url),
+              forcePasswordChange: profile.force_password_change,
             })
             supabase
               .from('profiles')
@@ -114,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             status: p.status,
             isOnline: p.is_online,
             avatarUrl: getPublicAvatarUrl(p.avatar_url),
+            forcePasswordChange: p.force_password_change,
           })),
         )
 
@@ -137,7 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 prev.role !== currentUserProfile.role ||
                 prev.status !== currentUserProfile.status ||
                 prev.isOnline !== currentUserProfile.is_online ||
-                prev.avatarUrl !== newAvatarUrl
+                prev.avatarUrl !== newAvatarUrl ||
+                prev.forcePasswordChange !==
+                  currentUserProfile.force_password_change
               ) {
                 return {
                   ...prev,
@@ -146,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   status: currentUserProfile.status,
                   isOnline: currentUserProfile.is_online,
                   avatarUrl: newAvatarUrl,
+                  forcePasswordChange: currentUserProfile.force_password_change,
                 }
               }
               return prev

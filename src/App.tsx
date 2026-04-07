@@ -15,6 +15,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ForgotPassword from '@/pages/ForgotPassword'
 import ResetPassword from '@/pages/ResetPassword'
+import ForceChangePassword from '@/pages/ForceChangePassword'
 import ChatPage from '@/pages/Chat'
 import ContractsPage from '@/pages/Contracts'
 import Portal from '@/pages/Portal'
@@ -55,6 +56,10 @@ function App() {
                             <Route
                               path="/reset-password"
                               element={<ResetPassword />}
+                            />
+                            <Route
+                              path="/force-change-password"
+                              element={<ForceChangePassword />}
                             />
                             <Route
                               path="/portal/:contractId"
