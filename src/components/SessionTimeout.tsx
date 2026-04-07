@@ -26,7 +26,7 @@ export function SessionTimeout({ children }: { children: React.ReactNode }) {
     navigate('/login', {
       state: {
         message:
-          'Your session has expired due to inactivity. Please log in again to continue.',
+          'Sua sessão expirou devido à inatividade. Por favor, faça login novamente para continuar.',
       },
     })
   }, [logout, navigate])
@@ -76,17 +76,17 @@ export function SessionTimeout({ children }: { children: React.ReactNode }) {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Session Timeout Warning</DialogTitle>
+            <DialogTitle>Aviso de Inatividade</DialogTitle>
             <DialogDescription>
-              Your session is about to expire due to inactivity. Would you like
-              to stay logged in?
+              Sua sessão está prestes a expirar devido à inatividade. Deseja
+              continuar conectado?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
             <Button variant="outline" onClick={handleLogout}>
-              Logout
+              Sair
             </Button>
-            <Button onClick={handleStayLoggedIn}>Stay Logged In</Button>
+            <Button onClick={handleStayLoggedIn}>Continuar Conectado</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
