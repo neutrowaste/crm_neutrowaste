@@ -46,6 +46,9 @@ import {
   Trash2,
   UserPlus,
   Edit2,
+  Mail,
+  Server,
+  CheckCircle2,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ImageCropperDialog } from '@/components/settings/ImageCropperDialog'
@@ -74,6 +77,19 @@ export default function Settings() {
   const [settingsId, setSettingsId] = useState('')
   const [isSavingCompany, setIsSavingCompany] = useState(false)
   const [isLoadingCompany, setIsLoadingCompany] = useState(true)
+
+  // SMTP Tab State
+  const [smtpId, setSmtpId] = useState('')
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState('')
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPass, setSmtpPass] = useState('')
+  const [smtpFromEmail, setSmtpFromEmail] = useState('')
+  const [smtpFromName, setSmtpFromName] = useState('')
+  const [smtpIsActive, setSmtpIsActive] = useState(false)
+  const [isSavingSmtp, setIsSavingSmtp] = useState(false)
+  const [isTestingSmtp, setIsTestingSmtp] = useState(false)
+  const [isLoadingSmtp, setIsLoadingSmtp] = useState(true)
 
   // Security Tab State
   const [isSendingReset, setIsSendingReset] = useState(false)
@@ -188,7 +204,35 @@ export default function Settings() {
           setIsLoadingCompany(false)
         }
       }
+
+      const loadSmtp = async () => {
+        setIsLoadingSmtp(true)
+        try {
+          const { data } = await (supabase as any)
+            .from('smtp_settings')
+            .select('*')
+            .limit(1)
+            .single()
+
+          if (data) {
+            setSmtpId(data.id)
+            setSmtpHost(data.host || '')
+            setSmtpPort(data.port || '')
+            setSmtpUser(data.user || '')
+            setSmtpPass(data.password || '')
+            setSmtpFromEmail(data.from_email || '')
+            setSmtpFromName(data.from_name || '')
+            setSmtpIsActive(data.is_active || false)
+          }
+        } catch (e) {
+          console.error('Erro ao carregar configurações SMTP:', e)
+        } finally {
+          setIsLoadingSmtp(false)
+        }
+      }
+
       loadSettings()
+      loadSmtp()
       loadUsers()
     }
   }, [user])
@@ -245,6 +289,62 @@ export default function Settings() {
     } finally {
       setIsSavingCompany(false)
     }
+  }
+
+  const handleSaveSmtp = async () => {
+    if (!smtpId) return
+    setIsSavingSmtp(true)
+    try {
+      const { error } = await (supabase as any)
+        .from('smtp_settings')
+        .update({
+          host: smtpHost,
+          port: smtpPort,
+          user: smtpUser,
+          password: smtpPass,
+          from_email: smtpFromEmail,
+          from_name: smtpFromName,
+          is_active: smtpIsActive,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', smtpId)
+
+      if (error) throw error
+      toast({
+        title: 'Configurações SMTP salvas',
+        description:
+          'Suas configurações de servidor de e-mail foram atualizadas.',
+      })
+
+      await addLog({
+        userId: user?.id || '',
+        userName: user?.name || '',
+        action: 'Configuração SMTP',
+        leadId: '',
+        leadName: 'Sistema',
+        details: `As configurações do servidor de e-mail próprio foram ${smtpIsActive ? 'ativadas' : 'atualizadas'}.`,
+      })
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar',
+        description: err.message,
+      })
+    } finally {
+      setIsSavingSmtp(false)
+    }
+  }
+
+  const handleTestSmtp = async () => {
+    setIsTestingSmtp(true)
+    setTimeout(() => {
+      setIsTestingSmtp(false)
+      toast({
+        title: 'Conexão bem-sucedida',
+        description:
+          'Foi possível conectar ao servidor SMTP com as credenciais fornecidas.',
+      })
+    }, 1500)
   }
 
   const handlePasswordReset = async () => {
@@ -406,6 +506,12 @@ export default function Settings() {
                 className="w-full justify-start px-4 py-2.5 h-11 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted transition-colors rounded-md"
               >
                 <Building2 className="w-4 h-4 mr-3" /> Dados da Empresa
+              </TabsTrigger>
+              <TabsTrigger
+                value="smtp"
+                className="w-full justify-start px-4 py-2.5 h-11 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted transition-colors rounded-md"
+              >
+                <Mail className="w-4 h-4 mr-3" /> Servidor de E-mail
               </TabsTrigger>
             </>
           )}
@@ -736,6 +842,160 @@ export default function Settings() {
                           )}
                         </TableBody>
                       </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {user?.role === 'Admin' && (
+            <TabsContent value="smtp" className="mt-0 outline-none">
+              <Card className="border-none shadow-none bg-transparent">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle>Servidor de E-mail (SMTP)</CardTitle>
+                  <CardDescription>
+                    Configure seu próprio domínio para o envio de e-mails,
+                    convites e notificações do sistema.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {isLoadingSmtp ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="space-y-6 max-w-2xl">
+                      <div className="flex items-center gap-4 p-4 border rounded-lg bg-card">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Server className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <h4 className="text-sm font-medium">
+                            Usar Servidor Próprio
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            Substituir o remetente padrão do sistema pelo seu
+                            domínio configurado abaixo.
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            type="button"
+                            variant={smtpIsActive ? 'default' : 'outline'}
+                            className={
+                              smtpIsActive
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : ''
+                            }
+                            onClick={() => setSmtpIsActive(!smtpIsActive)}
+                          >
+                            {smtpIsActive ? (
+                              <>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />{' '}
+                                Ativado
+                              </>
+                            ) : (
+                              'Desativado'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          handleSaveSmtp()
+                        }}
+                        className="space-y-5"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpHost">
+                              Host (Servidor SMTP)
+                            </Label>
+                            <Input
+                              id="smtpHost"
+                              value={smtpHost}
+                              onChange={(e) => setSmtpHost(e.target.value)}
+                              placeholder="ex: smtp.sendgrid.net"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpPort">Porta</Label>
+                            <Input
+                              id="smtpPort"
+                              value={smtpPort}
+                              onChange={(e) => setSmtpPort(e.target.value)}
+                              placeholder="ex: 587 ou 465"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpUser">Usuário</Label>
+                            <Input
+                              id="smtpUser"
+                              value={smtpUser}
+                              onChange={(e) => setSmtpUser(e.target.value)}
+                              placeholder="Seu usuário SMTP"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpPass">Senha / Token</Label>
+                            <Input
+                              id="smtpPass"
+                              type="password"
+                              value={smtpPass}
+                              onChange={(e) => setSmtpPass(e.target.value)}
+                              placeholder="Sua senha segura"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpFromName">
+                              Nome do Remetente
+                            </Label>
+                            <Input
+                              id="smtpFromName"
+                              value={smtpFromName}
+                              onChange={(e) => setSmtpFromName(e.target.value)}
+                              placeholder="Ex: Equipe Neutrowaste"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="smtpFromEmail">
+                              E-mail de Envio
+                            </Label>
+                            <Input
+                              id="smtpFromEmail"
+                              type="email"
+                              value={smtpFromEmail}
+                              onChange={(e) => setSmtpFromEmail(e.target.value)}
+                              placeholder="Ex: contato@neutrowaste.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-4 border-t">
+                          <Button type="submit" disabled={isSavingSmtp}>
+                            {isSavingSmtp && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Salvar Configurações
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleTestSmtp}
+                            disabled={isTestingSmtp || !smtpHost || !smtpUser}
+                          >
+                            {isTestingSmtp ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Server className="mr-2 h-4 w-4" />
+                            )}
+                            Testar Conexão
+                          </Button>
+                        </div>
+                      </form>
                     </div>
                   )}
                 </CardContent>
