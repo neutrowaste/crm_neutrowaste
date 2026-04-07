@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLogs } from '@/contexts/LogsContext'
 import { useTheme } from '@/components/ThemeProvider'
 import { supabase } from '@/lib/supabase/client'
 import {
@@ -82,6 +83,7 @@ export default function Settings() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
+  const { addLog } = useLogs()
 
   useEffect(() => {
     if (user) {
@@ -283,6 +285,7 @@ export default function Settings() {
   }
 
   const handleDeleteUser = async (userId: string) => {
+    const targetUser = users.find((u) => u.id === userId)
     if (
       !window.confirm(
         'Tem certeza que deseja excluir este usuário definitivamente? Esta ação não pode ser desfeita e removerá o acesso do usuário ao sistema.',
@@ -295,12 +298,68 @@ export default function Settings() {
         .delete()
         .eq('id', userId)
       if (error) throw error
+
+      await addLog({
+        userId: user?.id || '',
+        userName: user?.name || '',
+        action: 'Exclusão de Usuário',
+        leadId: '',
+        leadName: 'Sistema',
+        details: `O usuário ${targetUser?.name} (${targetUser?.email}) foi excluído do sistema.`,
+      })
+
       toast({ title: 'Usuário excluído com sucesso' })
       loadUsers()
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir usuário',
+        description: error.message,
+      })
+    }
+  }
+
+  const handleToggleUserStatus = async (targetUser: any) => {
+    const newStatus = targetUser.status === 'rejected' ? 'active' : 'rejected'
+    const actionText =
+      newStatus === 'rejected'
+        ? 'Bloqueio de Usuário'
+        : 'Desbloqueio de Usuário'
+
+    if (
+      newStatus === 'rejected' &&
+      !window.confirm(
+        `Tem certeza que deseja suspender o acesso de ${targetUser.name}?`,
+      )
+    ) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', targetUser.id)
+
+      if (error) throw error
+
+      await addLog({
+        userId: user?.id || '',
+        userName: user?.name || '',
+        action: actionText,
+        leadId: '',
+        leadName: 'Sistema',
+        details: `O acesso do usuário ${targetUser.name} (${targetUser.email}) foi ${newStatus === 'rejected' ? 'suspenso' : 'reativado'}.`,
+      })
+
+      toast({
+        title: `Acesso ${newStatus === 'rejected' ? 'suspenso' : 'reativado'} com sucesso`,
+      })
+      loadUsers()
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao alterar status',
         description: error.message,
       })
     }
@@ -626,6 +685,22 @@ export default function Settings() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    onClick={() => handleToggleUserStatus(u)}
+                                    disabled={u.id === user.id}
+                                    title={
+                                      u.status === 'rejected'
+                                        ? 'Reativar Acesso'
+                                        : 'Suspender Acesso'
+                                    }
+                                  >
+                                    <Shield
+                                      className={`h-4 w-4 ${u.status === 'rejected' ? 'text-green-500' : 'text-amber-500'}`}
+                                    />
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"

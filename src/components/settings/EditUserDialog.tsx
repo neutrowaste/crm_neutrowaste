@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
+import { useLogs } from '@/contexts/LogsContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface EditUserDialogProps {
   user: any
@@ -39,6 +41,8 @@ export function EditUserDialog({
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const { addLog } = useLogs()
+  const { user: currentUser } = useAuth()
 
   useEffect(() => {
     if (user) {
@@ -58,6 +62,15 @@ export function EditUserDialog({
         .eq('id', user.id)
 
       if (error) throw error
+
+      await addLog({
+        userId: currentUser?.id || '',
+        userName: currentUser?.name || '',
+        action: 'Edição de Usuário',
+        leadId: '',
+        leadName: 'Sistema',
+        details: `O perfil do usuário ${name} (${user.email}) foi atualizado. Perfil: ${role}, Status: ${status}.`,
+      })
 
       toast({
         title: 'Usuário atualizado',
