@@ -57,6 +57,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { supabase } from '@/lib/supabase/client'
 import {
   MoreHorizontal,
   UploadCloud,
@@ -66,6 +67,7 @@ import {
   Download,
   Trash,
   Link2,
+  Mail,
 } from 'lucide-react'
 
 const leadSchema = z.object({
@@ -173,23 +175,49 @@ export default function EditLead() {
     })
 
     if (status === 'Sent for Signature') {
-      const portalLink = `${window.location.origin}/portal/${contractId}`
-      const emailBody = `Olá ${lead.name},\n\nO documento "${contractName}" da empresa ${lead.company} está pronto para sua assinatura.\n\nAcesse o portal seguro para revisar e assinar: ${portalLink}`
+      try {
+        const portalLink = `${window.location.origin}/portal/${contractId}`
 
-      await addLog({
-        userId: 'system',
-        userName: 'Sistema Automático',
-        action: 'Email Enviado',
-        leadId: lead.id,
-        leadName: lead.name,
-        details: `E-mail automático enviado para ${lead.email}.\nConteúdo:\n${emailBody}`,
-      })
+        const { error } = await supabase.functions.invoke('send-email', {
+          body: {
+            email: lead.email,
+            type: 'proposal',
+            data: {
+              name: lead.name,
+              company: lead.company,
+              contractName: contractName,
+              contractId: contractId,
+            },
+          },
+        })
 
-      toast({
-        title: 'Documento Enviado!',
-        description:
-          'O link de assinatura do portal foi enviado ao cliente por e-mail.',
-      })
+        if (error) throw error
+
+        const emailBody = `Olá ${lead.name},\n\nO documento "${contractName}" da empresa ${lead.company} está pronto para sua assinatura.\n\nAcesse o portal seguro para revisar e assinar: ${portalLink}`
+
+        await addLog({
+          userId: 'system',
+          userName: 'Sistema Automático',
+          action: 'Email Enviado',
+          leadId: lead.id,
+          leadName: lead.name,
+          details: `E-mail automático enviado para ${lead.email}.\nConteúdo:\n${emailBody}`,
+        })
+
+        toast({
+          title: 'Documento Enviado!',
+          description:
+            'O link de assinatura do portal foi enviado ao cliente por e-mail.',
+        })
+      } catch (err: any) {
+        console.error('Erro ao enviar e-mail:', err)
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao enviar e-mail',
+          description:
+            'O status foi atualizado, mas o e-mail pode não ter sido entregue.',
+        })
+      }
     } else if (status === 'Signed' && lead.status !== 'Ganho') {
       await updateLead(lead.id, { status: 'Ganho' })
       await addLog({
@@ -208,6 +236,51 @@ export default function EditLead() {
       toast({
         title: 'Status Atualizado',
         description: 'O status do contrato foi atualizado.',
+      })
+    }
+  }
+
+  const handleResendEmail = async (
+    contractId: string,
+    contractName: string,
+  ) => {
+    if (!user) return
+
+    try {
+      const portalLink = `${window.location.origin}/portal/${contractId}`
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          email: lead.email,
+          type: 'proposal',
+          data: {
+            name: lead.name,
+            company: lead.company,
+            contractName: contractName,
+            contractId: contractId,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      await addLog({
+        userId: user.id,
+        userName: user.name,
+        action: 'Email Enviado',
+        leadId: lead.id,
+        leadName: lead.name,
+        details: `E-mail de contrato reenviado manualmente para ${lead.email}.\nDocumento: ${contractName}\nLink: ${portalLink}`,
+      })
+
+      toast({
+        title: 'E-mail Reenviado!',
+        description: 'O link de assinatura do portal foi reenviado ao cliente.',
+      })
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao reenviar',
+        description: err.message || 'Ocorreu um erro ao reenviar o e-mail.',
       })
     }
   }
@@ -527,6 +600,20 @@ export default function EditLead() {
 
                                   {contract.status === 'Sent for Signature' && (
                                     <>
+                                      {user?.role === 'Admin' && (
+                                        <DropdownMenuItem
+                                          className="text-blue-600 focus:text-blue-600"
+                                          onClick={() =>
+                                            handleResendEmail(
+                                              contract.id,
+                                              contract.name,
+                                            )
+                                          }
+                                        >
+                                          <Mail className="w-4 h-4 mr-2" />
+                                          Forçar Reenvio
+                                        </DropdownMenuItem>
+                                      )}
                                       <DropdownMenuItem
                                         className="text-green-600 focus:text-green-600"
                                         onClick={() =>
