@@ -220,6 +220,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       const msg = error.message?.toLowerCase() || ''
+      if (
+        msg.includes('edge function returned a non-2xx') ||
+        msg.includes('functionshttp')
+      ) {
+        throw new Error(
+          'Falha em um serviço interno (Edge Function). O administrador precisa verificar os logs de e-mail ou webhook no Supabase.',
+        )
+      }
       if (msg.includes('email not confirmed')) {
         throw new Error(
           'E-mail não confirmado. Verifique sua caixa de entrada ou contate o administrador.',

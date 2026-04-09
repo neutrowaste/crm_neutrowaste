@@ -142,6 +142,16 @@ export default function Login() {
           title: 'Conta em Análise',
           description: error.message,
         })
+      } else if (
+        msg.includes('edge function') ||
+        msg.includes('serviço interno')
+      ) {
+        setServerErrorMsg(error.message)
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Serviço Interno',
+          description: error.message,
+        })
       } else {
         setServerErrorMsg(error.message)
         toast({
