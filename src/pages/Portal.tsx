@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useContracts } from '@/contexts/ContractsContext'
-import { useLeads } from '@/contexts/LeadsContext'
-import { useLogs } from '@/contexts/LogsContext'
-import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,17 +13,20 @@ import {
 } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import logoImg from '../assets/neutrowaste-0b9d5.jpg'
-import { CheckCircle, FileText, XCircle, FileSignature } from 'lucide-react'
+import {
+  CheckCircle,
+  FileText,
+  XCircle,
+  FileSignature,
+  Loader2,
+} from 'lucide-react'
 
 export default function Portal() {
   const { contractId } = useParams<{ contractId: string }>()
-  const { contracts, updateContractStatus } = useContracts()
-  const { leads, updateLead } = useLeads()
-  const { addLog } = useLogs()
-  const { allUsers } = useAuth()
 
-  const contract = contracts.find((c) => c.id === contractId)
-  const lead = contract ? leads.find((l) => l.id === contract.leadId) : null
+  const [contractData, setContractData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false)
   const [signatureName, setSignatureName] = useState('')
@@ -34,28 +34,48 @@ export default function Portal() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
-    if (
-      contract &&
-      lead &&
-      !hasSigned &&
-      contract.status === 'Sent for Signature'
-    ) {
-      const hasAccessed = sessionStorage.getItem(`portal_access_${contractId}`)
-      if (!hasAccessed) {
-        addLog({
-          userId: 'customer',
-          userName: lead.name,
-          action: 'Acesso ao Portal',
-          leadId: lead.id,
-          leadName: lead.name,
-          details: `O cliente acessou o portal para visualizar o documento: ${contract.name}`,
+    const fetchContract = async () => {
+      if (!contractId) return
+
+      try {
+        const { data, error } = await supabase.rpc('get_public_contract', {
+          p_contract_id: contractId,
         })
-        sessionStorage.setItem(`portal_access_${contractId}`, 'true')
+
+        if (error || !data || !data.contract) {
+          throw error || new Error('Not found')
+        }
+
+        setContractData(data)
+
+        // Log access
+        const hasAccessed = sessionStorage.getItem(
+          `portal_access_${contractId}`,
+        )
+        if (!hasAccessed && data.contract.status === 'Sent for Signature') {
+          await supabase.rpc('log_portal_access', { p_contract_id: contractId })
+          sessionStorage.setItem(`portal_access_${contractId}`, 'true')
+        }
+      } catch (err) {
+        console.error('Error fetching contract:', err)
+        setError(true)
+      } finally {
+        setLoading(false)
       }
     }
-  }, [contract, lead, contractId, hasSigned, addLog])
 
-  if (!contract || !lead) {
+    fetchContract()
+  }, [contractId])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error || !contractData || !contractData.contract || !contractData.lead) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
         <img
@@ -76,41 +96,22 @@ export default function Portal() {
     )
   }
 
+  const { contract, lead } = contractData
   const isAlreadyProcessed = contract.status === 'Signed' || hasSigned
   const isInvalid =
     contract.status === 'Draft' || contract.status === 'Rejected'
 
   const handleSign = async () => {
-    if (!signatureName.trim()) return
+    if (!signatureName.trim() || !contractId) return
     setIsProcessing(true)
 
     try {
-      await updateContractStatus(contract.id, 'Signed')
-
-      if (lead.status !== 'Ganho') {
-        await updateLead(lead.id, { status: 'Ganho' })
-      }
-
-      await addLog({
-        userId: 'customer',
-        userName: signatureName,
-        action: 'Assinatura',
-        leadId: lead.id,
-        leadName: lead.name,
-        details: `Documento "${contract.name}" assinado digitalmente por ${signatureName} no Portal do Cliente.`,
+      const { error } = await supabase.rpc('sign_public_contract', {
+        p_contract_id: contractId,
+        p_signature_name: signatureName,
       })
 
-      const salesperson = allUsers.find((u) => u.id === contract.uploadedBy)
-      const emailBody = `Olá ${lead.name},\n\nO documento "${contract.name}" da ${lead.company} foi assinado com sucesso. Uma cópia foi enviada para ${salesperson?.email || 'seu consultor'}.\n\nObrigado por escolher a Neutrowaste!`
-
-      await addLog({
-        userId: 'system',
-        userName: 'Sistema Automático',
-        action: 'Email Enviado',
-        leadId: lead.id,
-        leadName: lead.name,
-        details: `Confirmação de assinatura enviada para ${lead.email} e ${salesperson?.email}.\n\nConteúdo:\n${emailBody}`,
-      })
+      if (error) throw error
 
       setHasSigned(true)
       setIsSignDialogOpen(false)
@@ -161,23 +162,41 @@ export default function Portal() {
                 <CardHeader className="border-b bg-muted/30">
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-blue-600" />
-                    <CardTitle className="text-lg font-medium text-gray-800">
+                    <CardTitle className="text-lg font-medium text-gray-800 flex-1 truncate">
                       {contract.name}
                     </CardTitle>
+                    {contract.file_url && (
+                      <a
+                        href={contract.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Abrir em nova guia
+                      </a>
+                    )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 bg-gray-200/50 p-6 md:p-8 flex flex-col items-center justify-center relative overflow-hidden rounded-b-lg">
-                  <div className="absolute inset-4 md:inset-8 bg-white shadow-md border rounded-md p-8 flex flex-col items-center justify-center text-center">
-                    <FileSignature className="h-16 w-16 mb-4 text-gray-300" />
-                    <p className="font-medium text-gray-500 text-lg">
-                      Visualizador de Documento Seguro
-                    </p>
-                    <p className="text-sm text-gray-400 mt-2 max-w-sm">
-                      Esta é uma visualização protegida do seu contrato. Por
-                      favor, revise todos os termos antes de prosseguir com a
-                      assinatura.
-                    </p>
-                  </div>
+                <CardContent className="flex-1 bg-gray-200/50 p-0 flex flex-col items-center justify-center relative overflow-hidden rounded-b-lg">
+                  {contract.file_url ? (
+                    <iframe
+                      src={`${contract.file_url}#toolbar=0`}
+                      className="w-full h-full border-0"
+                      title="Documento"
+                    />
+                  ) : (
+                    <div className="absolute inset-4 md:inset-8 bg-white shadow-md border rounded-md p-8 flex flex-col items-center justify-center text-center">
+                      <FileSignature className="h-16 w-16 mb-4 text-gray-300" />
+                      <p className="font-medium text-gray-500 text-lg">
+                        Visualizador de Documento Seguro
+                      </p>
+                      <p className="text-sm text-gray-400 mt-2 max-w-sm">
+                        O arquivo deste contrato não está disponível para
+                        visualização direta, mas você pode assiná-lo usando o
+                        painel ao lado.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -236,7 +255,7 @@ export default function Portal() {
           <DialogHeader>
             <DialogTitle>Assinatura Digital</DialogTitle>
             <DialogDescription>
-              Para concordar e assinar "{contract.name}", digite seu nome
+              Para concordar e assinar "{contract?.name}", digite seu nome
               completo conforme documento de identidade.
             </DialogDescription>
           </DialogHeader>
@@ -266,7 +285,14 @@ export default function Portal() {
               onClick={handleSign}
               disabled={!signatureName.trim() || isProcessing}
             >
-              {isProcessing ? 'Processando...' : 'Confirmar Assinatura'}
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                'Confirmar Assinatura'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
