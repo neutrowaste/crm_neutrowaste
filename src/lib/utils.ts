@@ -43,3 +43,21 @@ export function sendBrowserNotification(
     new Notification(title, options)
   }
 }
+
+export function formatCurrency(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return '-'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+export function formatCurrencyInput(value: string): string {
+  const numericValue = value.replace(/\D/g, '')
+  if (!numericValue) return ''
+  const number = parseInt(numericValue, 10)
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(number / 100)
+}
