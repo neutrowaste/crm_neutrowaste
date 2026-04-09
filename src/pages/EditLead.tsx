@@ -187,6 +187,7 @@ export default function EditLead() {
               company: lead.company,
               contractName: contractName,
               contractId: contractId,
+              portalLink: portalLink,
             },
           },
         })
@@ -215,6 +216,8 @@ export default function EditLead() {
           variant: 'destructive',
           title: 'Erro ao enviar e-mail',
           description:
+            err.message ||
+            err.error ||
             'O status foi atualizado, mas o e-mail pode não ter sido entregue.',
         })
       }
@@ -257,6 +260,7 @@ export default function EditLead() {
             company: lead.company,
             contractName: contractName,
             contractId: contractId,
+            portalLink: portalLink,
           },
         },
       })
@@ -280,7 +284,8 @@ export default function EditLead() {
       toast({
         variant: 'destructive',
         title: 'Erro ao reenviar',
-        description: err.message || 'Ocorreu um erro ao reenviar o e-mail.',
+        description:
+          err.message || err.error || 'Ocorreu um erro ao reenviar o e-mail.',
       })
     }
   }
