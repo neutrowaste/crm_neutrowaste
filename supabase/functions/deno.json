@@ -1,7 +1,7 @@
 {
   "_versions": {
     "get-maps-config": 2,
-    "send-email": 4,
+    "send-email": 5,
     "create-user": 2
   }
 }

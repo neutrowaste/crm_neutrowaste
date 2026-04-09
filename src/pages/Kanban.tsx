@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTemplates } from '@/contexts/TemplatesContext'
 import { useAutomations } from '@/contexts/AutomationsContext'
 import { useTasks } from '@/contexts/TasksContext'
+import { useContracts } from '@/contexts/ContractsContext'
+import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -52,6 +54,7 @@ export default function KanbanPage() {
   const { toast } = useToast()
   const { emailOnProposal, taskOnWon } = useAutomations()
   const { addTask } = useTasks()
+  const { addContract } = useContracts()
 
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState('')
@@ -94,19 +97,46 @@ export default function KanbanPage() {
         })
       }
 
-      if (newStatus === 'Proposta' && emailOnProposal && user) {
-        await addLog({
-          userId: 'system',
-          userName: 'Automação do Sistema',
-          action: 'E-mail Automático',
-          leadId: lead.id,
-          leadName: lead.name,
-          details: `E-mail de notificação de envio de contrato disparado para ${lead.email} via gatilho automático.`,
-        })
-        toast({
-          title: 'Automação Disparada',
-          description: `E-mail automático enviado para ${lead.name} referente à proposta.`,
-        })
+      if (newStatus === 'Proposta') {
+        try {
+          await addContract({
+            leadId: lead.id,
+            name: `Contrato - ${lead.company}`,
+            status: 'Sent for Signature',
+            uploadedBy: user?.id || '',
+            uploadedByName: user?.name || 'Sistema',
+          })
+
+          if (emailOnProposal && user) {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                email: lead.email,
+                type: 'proposal',
+                data: { name: lead.name, company: lead.company },
+              },
+            })
+
+            await addLog({
+              userId: 'system',
+              userName: 'Automação do Sistema',
+              action: 'E-mail Automático',
+              leadId: lead.id,
+              leadName: lead.name,
+              details: `E-mail de notificação de envio de contrato disparado para ${lead.email} via gatilho automático.`,
+            })
+            toast({
+              title: 'Automação Disparada',
+              description: `Contrato criado e e-mail enviado para ${lead.name}.`,
+            })
+          } else {
+            toast({
+              title: 'Contrato Criado',
+              description: `Contrato para ${lead.company} gerado com sucesso.`,
+            })
+          }
+        } catch (error) {
+          console.error('Erro ao criar contrato', error)
+        }
       }
 
       if (newStatus === 'Ganho' && taskOnWon && user) {
