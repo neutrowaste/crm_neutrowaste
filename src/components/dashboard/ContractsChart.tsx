@@ -18,8 +18,10 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 export function ContractsChart({
   timeFilter = 'monthly',
+  dateRange,
 }: {
   timeFilter?: string
+  dateRange?: { start: string; end: string }
 }) {
   const { contracts } = useContracts()
   const isMobile = useIsMobile()
@@ -30,8 +32,21 @@ export function ContractsChart({
     if (timeFilter === 'quarterly') numDays = 90
 
     const days = []
-    for (let i = numDays - 1; i >= 0; i--) {
-      days.push(subDays(new Date(), i))
+    if (timeFilter === 'custom' && dateRange?.start && dateRange?.end) {
+      const start = new Date(dateRange.start + 'T12:00:00')
+      const end = new Date(dateRange.end + 'T12:00:00')
+      const diffDays = Math.floor(
+        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+      )
+      const limitDays = Math.min(diffDays + 1, 90)
+
+      for (let i = limitDays - 1; i >= 0; i--) {
+        days.push(subDays(end, i))
+      }
+    } else {
+      for (let i = numDays - 1; i >= 0; i--) {
+        days.push(subDays(new Date(), i))
+      }
     }
 
     return days.map((day) => {
@@ -55,12 +70,12 @@ export function ContractsChart({
         <CardTitle>Assinaturas de Contratos</CardTitle>
         <CardDescription>Tendência no período selecionado</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-[300px]">
+      <CardContent className="flex-1 pb-4">
         <ChartContainer
           config={{
             value: { label: 'Assinaturas', color: 'hsl(var(--primary))' },
           }}
-          className="h-full w-full"
+          className="h-[300px] w-full"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

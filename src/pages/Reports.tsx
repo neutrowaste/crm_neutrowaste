@@ -252,7 +252,6 @@ export default function Reports() {
             <h2 className="text-lg font-semibold text-foreground print:text-black">
               Evolução de Assinaturas
             </h2>
-            {/* @ts-expect-error - ContractsChart might not support dateRange prop natively yet */}
             <ContractsChart timeFilter={timeFilter} dateRange={dateRange} />
           </div>
           <div className="space-y-4">
