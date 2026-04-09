@@ -78,12 +78,9 @@ export default function Settings() {
   const [isSavingCompany, setIsSavingCompany] = useState(false)
   const [isLoadingCompany, setIsLoadingCompany] = useState(true)
 
-  // SMTP Tab State
+  // Email API (Resend) Tab State
   const [smtpId, setSmtpId] = useState('')
-  const [smtpHost, setSmtpHost] = useState('')
-  const [smtpPort, setSmtpPort] = useState('')
-  const [smtpUser, setSmtpUser] = useState('')
-  const [smtpPass, setSmtpPass] = useState('')
+  const [smtpPass, setSmtpPass] = useState('') // Used for Resend API Key
   const [smtpFromEmail, setSmtpFromEmail] = useState('')
   const [smtpFromName, setSmtpFromName] = useState('')
   const [smtpIsActive, setSmtpIsActive] = useState(false)
@@ -216,9 +213,6 @@ export default function Settings() {
 
           if (data) {
             setSmtpId(data.id)
-            setSmtpHost(data.host || '')
-            setSmtpPort(data.port || '')
-            setSmtpUser(data.user || '')
             setSmtpPass(data.password || '')
             setSmtpFromEmail(data.from_email || '')
             setSmtpFromName(data.from_name || '')
@@ -298,10 +292,8 @@ export default function Settings() {
       const { error } = await (supabase as any)
         .from('smtp_settings')
         .update({
-          host: smtpHost,
-          port: smtpPort,
-          user: smtpUser,
-          password: smtpPass,
+          host: 'resend', // Fixar host como resend
+          password: smtpPass, // Usar password para API Key
           from_email: smtpFromEmail,
           from_name: smtpFromName,
           is_active: smtpIsActive,
@@ -853,10 +845,10 @@ export default function Settings() {
             <TabsContent value="smtp" className="mt-0 outline-none">
               <Card className="border-none shadow-none bg-transparent">
                 <CardHeader className="px-0 pt-0">
-                  <CardTitle>Servidor de E-mail (SMTP)</CardTitle>
+                  <CardTitle>Servidor de E-mail (Resend API)</CardTitle>
                   <CardDescription>
-                    Configure seu próprio domínio para o envio de e-mails,
-                    convites e notificações do sistema.
+                    Configure sua API Key do Resend para envio profissional de
+                    e-mails de forma rápida e segura.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0">
@@ -872,11 +864,11 @@ export default function Settings() {
                         </div>
                         <div className="flex-1 space-y-1">
                           <h4 className="text-sm font-medium">
-                            Usar Servidor Próprio
+                            Status do Provedor de E-mail
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            Substituir o remetente padrão do sistema pelo seu
-                            domínio configurado abaixo.
+                            Ative para substituir o remetente padrão do sistema
+                            pelo seu domínio configurado no Resend.
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -910,44 +902,19 @@ export default function Settings() {
                         className="space-y-5"
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="smtpHost">
-                              Host (Servidor SMTP)
-                            </Label>
-                            <Input
-                              id="smtpHost"
-                              value={smtpHost}
-                              onChange={(e) => setSmtpHost(e.target.value)}
-                              placeholder="ex: smtp.sendgrid.net"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="smtpPort">Porta</Label>
-                            <Input
-                              id="smtpPort"
-                              value={smtpPort}
-                              onChange={(e) => setSmtpPort(e.target.value)}
-                              placeholder="ex: 587 ou 465"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="smtpUser">Usuário</Label>
-                            <Input
-                              id="smtpUser"
-                              value={smtpUser}
-                              onChange={(e) => setSmtpUser(e.target.value)}
-                              placeholder="Seu usuário SMTP"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="smtpPass">Senha / Token</Label>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="smtpPass">API Key (Resend)</Label>
                             <Input
                               id="smtpPass"
                               type="password"
                               value={smtpPass}
                               onChange={(e) => setSmtpPass(e.target.value)}
-                              placeholder="Sua senha segura"
+                              placeholder="re_..."
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Obtenha esta chave de segurança no painel da sua
+                              conta Resend.
+                            </p>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="smtpFromName">
@@ -971,6 +938,9 @@ export default function Settings() {
                               onChange={(e) => setSmtpFromEmail(e.target.value)}
                               placeholder="Ex: contato@neutrowaste.com"
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Este domínio precisa estar verificado no Resend.
+                            </p>
                           </div>
                         </div>
 
@@ -985,7 +955,7 @@ export default function Settings() {
                             type="button"
                             variant="secondary"
                             onClick={handleTestSmtp}
-                            disabled={isTestingSmtp || !smtpHost || !smtpUser}
+                            disabled={isTestingSmtp || !smtpPass}
                           >
                             {isTestingSmtp ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
