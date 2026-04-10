@@ -132,14 +132,9 @@ export function Header() {
               className="relative h-9 w-9 rounded-full ml-1"
             >
               <Avatar className="h-9 w-9 border">
-                <AvatarImage
-                  src={
-                    user?.avatarUrl ||
-                    `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`
-                  }
-                />
+                <AvatarImage src={user?.avatarUrl || undefined} />
                 <AvatarFallback>
-                  {user?.name.slice(0, 2).toUpperCase()}
+                  {user?.name?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"></span>

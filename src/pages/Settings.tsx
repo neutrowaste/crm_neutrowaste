@@ -535,12 +535,7 @@ export default function Settings() {
                   <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 pb-6 border-b border-border">
                     <div className="relative group">
                       <Avatar className="h-24 w-24 border-2 border-muted shadow-sm">
-                        <AvatarImage
-                          src={
-                            avatarUrl ||
-                            `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id}`
-                          }
-                        />
+                        <AvatarImage src={avatarUrl || undefined} />
                         <AvatarFallback className="text-2xl">
                           {name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
