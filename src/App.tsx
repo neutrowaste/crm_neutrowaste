@@ -38,93 +38,61 @@ function App() {
     <ThemeProvider defaultTheme="light">
       <BrowserRouter>
         <AuthProvider>
-          <ChatProvider>
-            <WhatsAppProvider>
-              <LogsProvider>
-                <TasksProvider>
-                  <TemplatesProvider>
-                    <LeadsProvider>
-                      <ContractsProvider>
-                        <AutomationsProvider>
-                          <Routes>
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Register />} />
-                            <Route
-                              path="/forgot-password"
-                              element={<ForgotPassword />}
-                            />
-                            <Route
-                              path="/reset-password"
-                              element={<ResetPassword />}
-                            />
-                            <Route
-                              path="/force-change-password"
-                              element={<ForceChangePassword />}
-                            />
-                            <Route
-                              path="/portal/:contractId"
-                              element={<Portal />}
-                            />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/force-change-password"
+              element={<ForceChangePassword />}
+            />
+            <Route path="/portal/:contractId" element={<Portal />} />
 
-                            <Route
-                              path="/"
-                              element={
-                                <ProtectedRoute>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <ChatProvider>
+                    <WhatsAppProvider>
+                      <LogsProvider>
+                        <TasksProvider>
+                          <TemplatesProvider>
+                            <LeadsProvider>
+                              <ContractsProvider>
+                                <AutomationsProvider>
                                   <Layout />
-                                </ProtectedRoute>
-                              }
-                            >
-                              <Route
-                                index
-                                element={<Navigate to="/dashboard" replace />}
-                              />
-                              <Route path="dashboard" element={<Index />} />
-                              <Route path="leads" element={<Leads />} />
-                              <Route path="leads/new" element={<NewLead />} />
-                              <Route
-                                path="leads/edit/:id"
-                                element={<EditLead />}
-                              />
-                              <Route
-                                path="calendar"
-                                element={<CalendarPage />}
-                              />
-                              <Route path="kanban" element={<KanbanPage />} />
-                              <Route path="chat" element={<ChatPage />} />
-                              <Route path="reports" element={<Reports />} />
-                              <Route path="logs" element={<LogsPage />} />
-                              <Route
-                                path="automations"
-                                element={<AutomationsPage />}
-                              />
-                              <Route
-                                path="templates"
-                                element={<TemplatesPage />}
-                              />
-                              <Route
-                                path="contracts"
-                                element={<ContractsPage />}
-                              />
-                              <Route
-                                path="settings"
-                                element={<SettingsPage />}
-                              />
-                              <Route
-                                path="financial-reports"
-                                element={
-                                  <PlaceholderPage title="Relatórios Financeiros" />
-                                }
-                              />
-                            </Route>
-                          </Routes>
-                        </AutomationsProvider>
-                      </ContractsProvider>
-                    </LeadsProvider>
-                  </TemplatesProvider>
-                </TasksProvider>
-              </LogsProvider>
-            </WhatsAppProvider>
-          </ChatProvider>
+                                </AutomationsProvider>
+                              </ContractsProvider>
+                            </LeadsProvider>
+                          </TemplatesProvider>
+                        </TasksProvider>
+                      </LogsProvider>
+                    </WhatsAppProvider>
+                  </ChatProvider>
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Index />} />
+              <Route path="leads" element={<Leads />} />
+              <Route path="leads/new" element={<NewLead />} />
+              <Route path="leads/edit/:id" element={<EditLead />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="kanban" element={<KanbanPage />} />
+              <Route path="chat" element={<ChatPage />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="logs" element={<LogsPage />} />
+              <Route path="automations" element={<AutomationsPage />} />
+              <Route path="templates" element={<TemplatesPage />} />
+              <Route path="contracts" element={<ContractsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route
+                path="financial-reports"
+                element={<PlaceholderPage title="Relatórios Financeiros" />}
+              />
+            </Route>
+          </Routes>
         </AuthProvider>
         <Toaster />
       </BrowserRouter>

@@ -65,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (sessionUser) {
+      setIsLoading(true)
       supabase
         .from('profiles')
         .select('*')
@@ -195,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string): Promise<void> => {
     try {
+      setIsLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: pass,
@@ -219,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error: any) {
+      setIsLoading(false)
       const msg = error.message?.toLowerCase() || ''
       if (
         msg.includes('edge function returned a non-2xx') ||
