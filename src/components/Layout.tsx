@@ -20,9 +20,4 @@ export function Layout() {
           <Header />
         </div>
         <main className="flex-1 p-4 sm:p-6 md:p-8 pt-6 w-full max-w-[1600px] mx-auto print:p-0 print:m-0 print:bg-white print:text-black">
-          <Outlet key={location.pathname} />
-        </main>
-      </div>
-    </div>
-  )
-}
+          <Outlet ke
