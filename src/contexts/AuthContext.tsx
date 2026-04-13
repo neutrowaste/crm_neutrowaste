@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from 'react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
@@ -39,89 +40,122 @@ const getPublicAvatarUrl = (url: string | null) => {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const userIdRef = useRef<string | null>(null)
 
   useEffect(() => {
+    let mounted = true
+
+    const loadProfile = async (authUser: SupabaseUser) => {
+      setIsLoading(true)
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+
+        if (error || !profile) {
+          if (mounted) {
+            setUser(null)
+            setIsLoading(false)
+          }
+          return
+        }
+
+        if (profile.status !== 'active') {
+          await supabase.auth.signOut()
+          if (mounted) {
+            setUser(null)
+            setIsLoading(false)
+          }
+          return
+        }
+
+        const { data: roleData } = await supabase
+          .from('app_roles')
+          .select('permissions')
+          .eq('name', profile.role)
+          .single()
+
+        if (mounted) {
+          setUser({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+            status: profile.status,
+            isOnline: profile.is_online,
+            avatarUrl: getPublicAvatarUrl(profile.avatar_url),
+            forcePasswordChange: profile.force_password_change,
+            permissions:
+              roleData?.permissions || (profile.role === 'Admin' ? ['*'] : []),
+          })
+          setIsLoading(false)
+        }
+
+        supabase
+          .from('profiles')
+          .update({
+            is_online: true,
+            last_sign_in_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id)
+          .then()
+      } catch (err) {
+        console.error('Error loading profile', err)
+        if (mounted) {
+          setUser(null)
+          setIsLoading(false)
+        }
+      }
+    }
+
+    const checkSession = (session: any) => {
+      if (!mounted) return
+      const currentId = session?.user?.id || null
+
+      if (currentId !== userIdRef.current) {
+        userIdRef.current = currentId
+        if (currentId && session?.user) {
+          loadProfile(session.user)
+        } else {
+          setUser(null)
+          setIsLoading(false)
+        }
+      } else if (!currentId) {
+        setIsLoading(false)
+      }
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      checkSession(session)
+    })
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      setSessionUser(session?.user ?? null)
-      if (!session?.user) {
-        setUser(null)
-        setIsLoading(false)
-      }
+      checkSession(session)
     })
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSessionUser(session?.user ?? null)
-      if (!session?.user) {
-        setIsLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
-    if (sessionUser) {
-      setIsLoading(true)
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', sessionUser.id)
-        .single()
-        .then(({ data: profile }) => {
-          if (profile) {
-            if (profile.status !== 'active') {
-              supabase.auth.signOut()
-              setUser(null)
-              setIsLoading(false)
-              return
-            }
-
-            supabase
-              .from('app_roles' as any)
-              .select('permissions')
-              .eq('name', profile.role)
-              .single()
-              .then(({ data: roleData }) => {
-                setUser({
-                  id: profile.id,
-                  name: profile.name,
-                  email: profile.email,
-                  role: profile.role,
-                  status: profile.status,
-                  isOnline: profile.is_online,
-                  avatarUrl: getPublicAvatarUrl(profile.avatar_url),
-                  forcePasswordChange: profile.force_password_change,
-                  permissions:
-                    roleData?.permissions ||
-                    (profile.role === 'Admin' ? ['*'] : []),
-                })
-                setIsLoading(false)
-              })
-
-            supabase
-              .from('profiles')
-              .update({
-                is_online: true,
-                last_sign_in_at: new Date().toISOString(),
-              })
-              .eq('id', profile.id)
-              .then()
-          } else {
-            setIsLoading(false)
-          }
-        })
+    if (!user?.id) {
+      setAllUsers([])
+      return
     }
-  }, [sessionUser])
 
-  useEffect(() => {
+    let mounted = true
+
     const fetchUsers = async () => {
       const { data } = await supabase.from('profiles').select('*')
-      if (data) {
+      if (data && mounted) {
         setAllUsers(
           data.map((p) => ({
             id: p.id,
@@ -135,75 +169,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           })),
         )
 
-        if (user) {
-          const currentUserProfile = data.find((p) => p.id === user.id)
-          if (currentUserProfile) {
-            if (currentUserProfile.status !== 'active') {
-              supabase.auth.signOut()
-              setUser(null)
-              return
-            }
-
-            const newAvatarUrl = getPublicAvatarUrl(
-              currentUserProfile.avatar_url,
-            )
-
-            if (currentUserProfile.role !== user.role) {
-              supabase
-                .from('app_roles' as any)
-                .select('permissions')
-                .eq('name', currentUserProfile.role)
-                .single()
-                .then(({ data: roleData }) => {
-                  setUser((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          name: currentUserProfile.name,
-                          role: currentUserProfile.role,
-                          status: currentUserProfile.status,
-                          isOnline: currentUserProfile.is_online,
-                          avatarUrl: newAvatarUrl,
-                          forcePasswordChange:
-                            currentUserProfile.force_password_change,
-                          permissions:
-                            roleData?.permissions ||
-                            (currentUserProfile.role === 'Admin' ? ['*'] : []),
-                        }
-                      : null,
-                  )
-                })
-            } else {
-              setUser((prev) => {
-                if (!prev) return null
-                if (
-                  prev.name !== currentUserProfile.name ||
-                  prev.status !== currentUserProfile.status ||
-                  prev.isOnline !== currentUserProfile.is_online ||
-                  prev.avatarUrl !== newAvatarUrl ||
-                  prev.forcePasswordChange !==
-                    currentUserProfile.force_password_change
-                ) {
-                  return {
-                    ...prev,
-                    name: currentUserProfile.name,
-                    status: currentUserProfile.status,
-                    isOnline: currentUserProfile.is_online,
-                    avatarUrl: newAvatarUrl,
-                    forcePasswordChange:
-                      currentUserProfile.force_password_change,
-                  }
-                }
-                return prev
-              })
-            }
-          } else {
+        const me = data.find((p) => p.id === user.id)
+        if (me) {
+          if (me.status !== 'active') {
             supabase.auth.signOut()
-            setUser(null)
+            return
           }
+
+          setUser((prev) => {
+            if (!prev) return null
+            const newAvatarUrl = getPublicAvatarUrl(me.avatar_url)
+            if (
+              prev.name !== me.name ||
+              prev.role !== me.role ||
+              prev.status !== me.status ||
+              prev.isOnline !== me.is_online ||
+              prev.avatarUrl !== newAvatarUrl ||
+              prev.forcePasswordChange !== me.force_password_change
+            ) {
+              return {
+                ...prev,
+                name: me.name,
+                role: me.role,
+                status: me.status,
+                isOnline: me.is_online,
+                avatarUrl: newAvatarUrl,
+                forcePasswordChange: me.force_password_change,
+              }
+            }
+            return prev
+          })
         }
       }
     }
+
     fetchUsers()
 
     const channel = supabase
@@ -218,21 +217,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe()
 
     const handleBeforeUnload = () => {
-      if (user) {
-        supabase
-          .from('profiles')
-          .update({ is_online: false })
-          .eq('id', user.id)
-          .then()
-      }
+      supabase
+        .from('profiles')
+        .update({ is_online: false })
+        .eq('id', user.id)
+        .then()
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
+      mounted = false
       window.removeEventListener('beforeunload', handleBeforeUnload)
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user?.id])
 
   const login = async (email: string, pass: string): Promise<void> => {
     try {
@@ -268,12 +266,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         msg.includes('functionshttp')
       ) {
         throw new Error(
-          'Falha em um serviço interno (Edge Function). O administrador precisa verificar os logs de e-mail ou webhook no Supabase.',
+          'Falha em um serviço interno. O administrador precisa verificar os logs.',
         )
       }
       if (msg.includes('email not confirmed')) {
         throw new Error(
-          'E-mail não confirmado. Verifique sua caixa de entrada ou contate o administrador.',
+          'E-mail não confirmado. Verifique sua caixa de entrada.',
         )
       }
       if (
@@ -330,6 +328,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({ is_online: false })
         .eq('id', user.id)
     }
+    userIdRef.current = null
     await supabase.auth.signOut()
     setUser(null)
   }
