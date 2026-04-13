@@ -63,7 +63,7 @@ export function SalesFunnel({ timeFilter = 'monthly', dateRange }: Props) {
         <CardTitle>Funil de Vendas</CardTitle>
         <CardDescription>Distribuição de leads por etapa</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-[300px]">
+      <CardContent className="flex-1 pb-4">
         <ChartContainer
           config={{
             value: {
@@ -71,7 +71,7 @@ export function SalesFunnel({ timeFilter = 'monthly', dateRange }: Props) {
               color: 'hsl(var(--primary))',
             },
           }}
-          className="h-full w-full"
+          className="h-[300px] w-full"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

@@ -73,7 +73,7 @@ export function RevenueByStatusChart({
         <CardTitle>Valor Total por Etapa</CardTitle>
         <CardDescription>Receita potencial acumulada</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 min-h-[300px]">
+      <CardContent className="flex-1 pb-4">
         <ChartContainer
           config={{
             value: {
@@ -81,7 +81,7 @@ export function RevenueByStatusChart({
               color: 'hsl(var(--primary))',
             },
           }}
-          className="h-full w-full"
+          className="h-[300px] w-full"
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
