@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import { useTemplates, EmailTemplate } from '@/contexts/TemplatesContext'
+import {
+  useTemplates,
+  EmailTemplate,
+  ContractTemplate,
+} from '@/contexts/TemplatesContext'
 import { useWhatsApp, WhatsAppTemplate } from '@/contexts/WhatsAppContext'
 import {
   Card,
@@ -27,12 +31,20 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Edit, Trash, Mail, MessageCircle } from 'lucide-react'
+import { Plus, Edit, Trash, Mail, MessageCircle, FileText } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Templates() {
-  const { templates, addTemplate, updateTemplate, deleteTemplate } =
-    useTemplates()
+  const {
+    templates,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    contractTemplates,
+    addContractTemplate,
+    updateContractTemplate,
+    deleteContractTemplate,
+  } = useTemplates()
   const { waTemplates, addWaTemplate, updateWaTemplate, deleteWaTemplate } =
     useWhatsApp()
   const { toast } = useToast()
@@ -45,18 +57,29 @@ export default function Templates() {
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  const [description, setDescription] = useState('')
+  const [file, setFile] = useState<File | null>(null)
 
   const openDialog = (item?: any) => {
     if (item) {
       setEditingId(item.id)
       setName(item.name)
-      setBody(item.text || item.body)
-      if (activeTab === 'email') setSubject(item.subject)
+      if (activeTab === 'email') {
+        setSubject(item.subject)
+        setBody(item.text || item.body)
+      } else if (activeTab === 'whatsapp') {
+        setBody(item.text || item.body)
+      } else if (activeTab === 'contracts') {
+        setDescription(item.description || '')
+        setFile(null)
+      }
     } else {
       setEditingId(null)
       setName('')
       setSubject('')
       setBody('')
+      setDescription('')
+      setFile(null)
     }
     setIsDialogOpen(true)
   }
@@ -67,10 +90,22 @@ export default function Templates() {
       if (activeTab === 'email') {
         if (editingId) await updateTemplate(editingId, { name, subject, body })
         else await addTemplate({ name, subject, body })
-      } else {
+      } else if (activeTab === 'whatsapp') {
         if (editingId) await updateWaTemplate(editingId, { name, text: body })
         else await addWaTemplate({ name, text: body })
+      } else if (activeTab === 'contracts') {
+        if (editingId) {
+          await updateContractTemplate(
+            editingId,
+            { name, description },
+            file || undefined,
+          )
+        } else {
+          if (!file) throw new Error('Selecione um arquivo PDF para o modelo.')
+          await addContractTemplate({ name, description }, file)
+        }
       }
+
       toast({
         title: 'Sucesso',
         description: 'Modelo salvo com sucesso.',
@@ -95,7 +130,7 @@ export default function Templates() {
             Biblioteca de Modelos
           </h1>
           <p className="text-muted-foreground mt-1">
-            Crie templates para E-mail (Follow-up) e WhatsApp.
+            Crie templates para E-mail, WhatsApp e Contratos.
           </p>
         </div>
         <Button onClick={() => openDialog()} className="w-full sm:w-auto">
@@ -105,13 +140,17 @@ export default function Templates() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="flex w-max sm:w-full max-w-[400px]">
+          <TabsList className="flex w-max sm:w-full max-w-[500px]">
             <TabsTrigger value="email" className="flex-1">
               <Mail className="w-4 h-4 mr-2 hidden sm:inline-block" /> E-mail
             </TabsTrigger>
             <TabsTrigger value="whatsapp" className="flex-1">
               <MessageCircle className="w-4 h-4 mr-2 hidden sm:inline-block" />{' '}
               WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="contracts" className="flex-1">
+              <FileText className="w-4 h-4 mr-2 hidden sm:inline-block" />{' '}
+              Contratos
             </TabsTrigger>
           </TabsList>
         </div>
@@ -269,6 +308,87 @@ export default function Templates() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="contracts" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Modelos de Contratos (PDF)</CardTitle>
+              <CardDescription>
+                Faça o upload de contratos em PDF para utilizá-los rapidamente
+                em novas negociações.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border overflow-x-auto -mx-6 sm:mx-0">
+                <div className="min-w-[600px] px-6 sm:px-0">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Arquivo</TableHead>
+                        <TableHead className="w-[100px] text-right">
+                          Ações
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contractTemplates.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            Nenhum modelo de contrato criado.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        contractTemplates.map((tpl) => (
+                          <TableRow key={tpl.id} className="hover:bg-muted/30">
+                            <TableCell className="font-medium whitespace-nowrap">
+                              {tpl.name}
+                            </TableCell>
+                            <TableCell className="truncate max-w-[200px] md:max-w-md">
+                              {tpl.description || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <a
+                                href={tpl.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 hover:underline flex items-center text-sm font-medium"
+                              >
+                                <FileText className="w-3 h-3 mr-1" /> Ver PDF
+                              </a>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openDialog(tpl)}
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteContractTemplate(tpl.id)}
+                                >
+                                  <Trash className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -288,6 +408,7 @@ export default function Templates() {
                 disabled={isProcessing}
               />
             </div>
+
             {activeTab === 'email' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Assunto</label>
@@ -299,16 +420,53 @@ export default function Templates() {
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Corpo da Mensagem</label>
-              <Textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="min-h-[150px]"
-                placeholder={`Olá {{contact_name}}...`}
-                disabled={isProcessing}
-              />
-            </div>
+
+            {(activeTab === 'email' || activeTab === 'whatsapp') && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Corpo da Mensagem</label>
+                <Textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  className="min-h-[150px]"
+                  placeholder={`Olá {{contact_name}}...`}
+                  disabled={isProcessing}
+                />
+              </div>
+            )}
+
+            {activeTab === 'contracts' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Descrição (Opcional)
+                  </label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[80px]"
+                    placeholder="Breve descrição do modelo de contrato..."
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Arquivo do Contrato (PDF)
+                    {editingId && (
+                      <span className="text-muted-foreground ml-1 text-xs font-normal">
+                        (Deixe vazio para manter atual)
+                      </span>
+                    )}
+                  </label>
+                  <Input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    disabled={isProcessing}
+                    className="cursor-pointer file:cursor-pointer"
+                  />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
             <Button
@@ -324,12 +482,13 @@ export default function Templates() {
               onClick={handleSave}
               disabled={
                 !name ||
-                !body ||
-                (activeTab === 'email' && !subject) ||
+                (activeTab === 'email' && (!subject || !body)) ||
+                (activeTab === 'whatsapp' && !body) ||
+                (activeTab === 'contracts' && !editingId && !file) ||
                 isProcessing
               }
             >
-              Salvar Modelo
+              {isProcessing ? 'Salvando...' : 'Salvar Modelo'}
             </Button>
           </DialogFooter>
         </DialogContent>
