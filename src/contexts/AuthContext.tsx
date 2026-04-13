@@ -12,11 +12,12 @@ export interface User {
   id: string
   name: string
   email: string
-  role: 'Admin' | 'Seller'
+  role: string
   status?: string
   isOnline?: boolean
   avatarUrl?: string
   forcePasswordChange?: boolean
+  permissions?: string[]
 }
 
 interface AuthContextType {
@@ -80,16 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return
             }
 
-            setUser({
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role as 'Admin' | 'Seller',
-              status: profile.status,
-              isOnline: profile.is_online,
-              avatarUrl: getPublicAvatarUrl(profile.avatar_url),
-              forcePasswordChange: profile.force_password_change,
-            })
+            supabase
+              .from('app_roles' as any)
+              .select('permissions')
+              .eq('name', profile.role)
+              .single()
+              .then(({ data: roleData }) => {
+                setUser({
+                  id: profile.id,
+                  name: profile.name,
+                  email: profile.email,
+                  role: profile.role,
+                  status: profile.status,
+                  isOnline: profile.is_online,
+                  avatarUrl: getPublicAvatarUrl(profile.avatar_url),
+                  forcePasswordChange: profile.force_password_change,
+                  permissions:
+                    roleData?.permissions ||
+                    (profile.role === 'Admin' ? ['*'] : []),
+                })
+                setIsLoading(false)
+              })
+
             supabase
               .from('profiles')
               .update({
@@ -98,8 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               })
               .eq('id', profile.id)
               .then()
+          } else {
+            setIsLoading(false)
           }
-          setIsLoading(false)
         })
     }
   }, [sessionUser])
@@ -113,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: p.id,
             name: p.name,
             email: p.email,
-            role: p.role as 'Admin' | 'Seller',
+            role: p.role,
             status: p.status,
             isOnline: p.is_online,
             avatarUrl: getPublicAvatarUrl(p.avatar_url),
@@ -134,29 +148,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               currentUserProfile.avatar_url,
             )
 
-            setUser((prev) => {
-              if (!prev) return null
-              if (
-                prev.name !== currentUserProfile.name ||
-                prev.role !== currentUserProfile.role ||
-                prev.status !== currentUserProfile.status ||
-                prev.isOnline !== currentUserProfile.is_online ||
-                prev.avatarUrl !== newAvatarUrl ||
-                prev.forcePasswordChange !==
-                  currentUserProfile.force_password_change
-              ) {
-                return {
-                  ...prev,
-                  name: currentUserProfile.name,
-                  role: currentUserProfile.role as 'Admin' | 'Seller',
-                  status: currentUserProfile.status,
-                  isOnline: currentUserProfile.is_online,
-                  avatarUrl: newAvatarUrl,
-                  forcePasswordChange: currentUserProfile.force_password_change,
+            if (currentUserProfile.role !== user.role) {
+              supabase
+                .from('app_roles' as any)
+                .select('permissions')
+                .eq('name', currentUserProfile.role)
+                .single()
+                .then(({ data: roleData }) => {
+                  setUser((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          name: currentUserProfile.name,
+                          role: currentUserProfile.role,
+                          status: currentUserProfile.status,
+                          isOnline: currentUserProfile.is_online,
+                          avatarUrl: newAvatarUrl,
+                          forcePasswordChange:
+                            currentUserProfile.force_password_change,
+                          permissions:
+                            roleData?.permissions ||
+                            (currentUserProfile.role === 'Admin' ? ['*'] : []),
+                        }
+                      : null,
+                  )
+                })
+            } else {
+              setUser((prev) => {
+                if (!prev) return null
+                if (
+                  prev.name !== currentUserProfile.name ||
+                  prev.status !== currentUserProfile.status ||
+                  prev.isOnline !== currentUserProfile.is_online ||
+                  prev.avatarUrl !== newAvatarUrl ||
+                  prev.forcePasswordChange !==
+                    currentUserProfile.force_password_change
+                ) {
+                  return {
+                    ...prev,
+                    name: currentUserProfile.name,
+                    status: currentUserProfile.status,
+                    isOnline: currentUserProfile.is_online,
+                    avatarUrl: newAvatarUrl,
+                    forcePasswordChange:
+                      currentUserProfile.force_password_change,
+                  }
                 }
-              }
-              return prev
-            })
+                return prev
+              })
+            }
           } else {
             supabase.auth.signOut()
             setUser(null)

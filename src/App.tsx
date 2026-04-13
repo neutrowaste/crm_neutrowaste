@@ -11,6 +11,7 @@ import TemplatesPage from '@/pages/Templates'
 import AutomationsPage from '@/pages/Automations'
 import PlaceholderPage from '@/pages/PlaceholderPage'
 import SettingsPage from '@/pages/Settings'
+import RolesPage from '@/pages/Roles'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ForgotPassword from '@/pages/ForgotPassword'
@@ -30,6 +31,7 @@ import { ChatProvider } from '@/contexts/ChatContext'
 import { ContractsProvider } from '@/contexts/ContractsContext'
 import { AutomationsProvider } from '@/contexts/AutomationsContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { RequirePermission } from '@/components/RequirePermission'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
@@ -74,22 +76,125 @@ function App() {
               }
             >
               <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Index />} />
-              <Route path="leads" element={<Leads />} />
-              <Route path="leads/new" element={<NewLead />} />
-              <Route path="leads/edit/:id" element={<EditLead />} />
-              <Route path="calendar" element={<CalendarPage />} />
-              <Route path="kanban" element={<KanbanPage />} />
-              <Route path="chat" element={<ChatPage />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="logs" element={<LogsPage />} />
-              <Route path="automations" element={<AutomationsPage />} />
-              <Route path="templates" element={<TemplatesPage />} />
-              <Route path="contracts" element={<ContractsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route
+                path="dashboard"
+                element={
+                  <RequirePermission module="dashboard">
+                    <Index />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="leads"
+                element={
+                  <RequirePermission module="leads">
+                    <Leads />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="leads/new"
+                element={
+                  <RequirePermission module="leads">
+                    <NewLead />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="leads/edit/:id"
+                element={
+                  <RequirePermission module="leads">
+                    <EditLead />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="calendar"
+                element={
+                  <RequirePermission module="calendar">
+                    <CalendarPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="kanban"
+                element={
+                  <RequirePermission module="kanban">
+                    <KanbanPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="chat"
+                element={
+                  <RequirePermission module="chat">
+                    <ChatPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="reports"
+                element={
+                  <RequirePermission module="reports">
+                    <Reports />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="logs"
+                element={
+                  <RequirePermission module="logs">
+                    <LogsPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="automations"
+                element={
+                  <RequirePermission module="automations">
+                    <AutomationsPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="templates"
+                element={
+                  <RequirePermission module="templates">
+                    <TemplatesPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="contracts"
+                element={
+                  <RequirePermission module="contracts">
+                    <ContractsPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <RequirePermission module="settings">
+                    <SettingsPage />
+                  </RequirePermission>
+                }
+              />
+              <Route
+                path="roles"
+                element={
+                  <RequirePermission module="roles">
+                    <RolesPage />
+                  </RequirePermission>
+                }
+              />
               <Route
                 path="financial-reports"
-                element={<PlaceholderPage title="Relatórios Financeiros" />}
+                element={
+                  <RequirePermission module="reports">
+                    <PlaceholderPage title="Relatórios Financeiros" />
+                  </RequirePermission>
+                }
               />
             </Route>
           </Routes>

@@ -17,30 +17,47 @@ import logoImg from '../assets/neutrowaste-0b9d5.jpg'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChat } from '@/contexts/ChatContext'
 
-const defaultNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Kanban', href: '/kanban', icon: Kanban },
-  { name: 'Leads', href: '/leads', icon: Users },
-  { name: 'Contratos', href: '/contracts', icon: FileText },
-  { name: 'Agenda', href: '/calendar', icon: Calendar },
-  { name: 'Chat', href: '/chat', icon: MessageSquare },
-  { name: 'Relatórios', href: '/reports', icon: BarChart3 },
-  { name: 'Modelos', href: '/templates', icon: Mail },
-]
-
 export function Sidebar() {
   const location = useLocation()
   const { user } = useAuth()
   const { getUnreadCount } = useChat()
 
-  const navigation = [...defaultNavigation]
-  if (user?.role === 'Admin') {
-    navigation.push(
-      { name: 'Gatilhos', href: '/automations', icon: Zap },
-      { name: 'Auditoria', href: '/logs', icon: ShieldAlert },
-      { name: 'Configurações', href: '/settings', icon: Settings },
-    )
+  const allNavigation = [
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      id: 'dashboard',
+    },
+    { name: 'Kanban', href: '/kanban', icon: Kanban, id: 'kanban' },
+    { name: 'Leads', href: '/leads', icon: Users, id: 'leads' },
+    { name: 'Contratos', href: '/contracts', icon: FileText, id: 'contracts' },
+    { name: 'Agenda', href: '/calendar', icon: Calendar, id: 'calendar' },
+    { name: 'Chat', href: '/chat', icon: MessageSquare, id: 'chat' },
+    { name: 'Relatórios', href: '/reports', icon: BarChart3, id: 'reports' },
+    { name: 'Modelos', href: '/templates', icon: Mail, id: 'templates' },
+    { name: 'Gatilhos', href: '/automations', icon: Zap, id: 'automations' },
+    { name: 'Auditoria', href: '/logs', icon: ShieldAlert, id: 'logs' },
+    {
+      name: 'Configurações',
+      href: '/settings',
+      icon: Settings,
+      id: 'settings',
+    },
+    {
+      name: 'Perfis e Acessos',
+      href: '/roles',
+      icon: ShieldAlert,
+      id: 'roles',
+    },
+  ]
+
+  const hasPermission = (id: string) => {
+    if (user?.role === 'Admin' || user?.permissions?.includes('*')) return true
+    return user?.permissions?.includes(id)
   }
+
+  const navigation = allNavigation.filter((item) => hasPermission(item.id))
 
   const unreadCount = user ? getUnreadCount(user.id) : 0
 
