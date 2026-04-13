@@ -1,9 +1,11 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { useEffect } from 'react'
 
 export function Layout() {
+  const location = useLocation()
+
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission()
@@ -18,7 +20,7 @@ export function Layout() {
           <Header />
         </div>
         <main className="flex-1 p-4 sm:p-6 md:p-8 pt-6 w-full max-w-[1600px] mx-auto print:p-0 print:m-0 print:bg-white print:text-black">
-          <Outlet />
+          <Outlet key={location.pathname} />
         </main>
       </div>
     </div>
