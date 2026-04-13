@@ -54,9 +54,9 @@ export default function AutomationsPage() {
                   Notificação de Proposta Enviada
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Ao mover um lead para a coluna "Contract Sent" no Kanban,
-                  envia um e-mail automático (mock) avisando que o contrato está
-                  a caminho.
+                  Ao mover um lead para a coluna "Contrato Enviado" no Kanban,
+                  envia um e-mail automático avisando que o contrato está a
+                  caminho.
                 </p>
               </div>
               <Switch
@@ -85,7 +85,7 @@ export default function AutomationsPage() {
                   Tarefa de Boas-Vindas
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Ao mover um lead para a coluna "Signed" (Ganho), cria
+                  Ao mover um lead para a coluna "Assinado" (Ganho), cria
                   automaticamente uma tarefa de acompanhamento inicial
                   (Onboarding) para o dia seguinte.
                 </p>

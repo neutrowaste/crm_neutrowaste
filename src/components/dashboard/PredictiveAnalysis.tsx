@@ -116,7 +116,7 @@ export function PredictiveAnalysis() {
               </div>
               <div className="space-y-1 text-right">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Win Rate Estimado
+                  Taxa de Conversão Estimada
                 </p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   42%

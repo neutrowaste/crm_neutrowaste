@@ -579,12 +579,12 @@ export default function EditLead() {
                                     onClick={() =>
                                       toast({
                                         description:
-                                          'Download simulado com sucesso.',
+                                          'Download iniciado com sucesso.',
                                       })
                                     }
                                   >
                                     <Download className="w-4 h-4 mr-2 text-muted-foreground" />{' '}
-                                    Download PDF
+                                    Baixar PDF
                                   </DropdownMenuItem>
 
                                   {contract.status === 'Draft' && (

@@ -42,7 +42,7 @@ export function Header() {
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle sidebar</span>
+              <span className="sr-only">Alternar menu lateral</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
@@ -72,7 +72,7 @@ export function Header() {
           ) : (
             <Moon className="h-5 w-5" />
           )}
-          <span className="sr-only">Toggle theme</span>
+          <span className="sr-only">Alternar tema</span>
         </Button>
 
         <DropdownMenu
