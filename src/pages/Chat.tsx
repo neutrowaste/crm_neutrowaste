@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useChat } from '@/contexts/ChatContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLeads } from '@/contexts/LeadsContext'
@@ -20,12 +20,22 @@ import {
   User as UserIcon,
   Paperclip,
   FileText,
+  Loader2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+
+// Helper for deterministic seed
+const getAvatarSeed = (id: string) => {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 1000
+}
 
 export default function ChatPage() {
   const { messages, sendMessage, markAllAsRead, getUnreadCount } = useChat()
@@ -40,17 +50,29 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const safeAllUsers = useMemo(() => allUsers || [], [allUsers])
+
   useEffect(() => {
     if (user && !showMobileList) {
       markAllAsRead(user.id, activeChannel)
     }
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, user, activeChannel, showMobileList, markAllAsRead])
+    const timeout = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+    return () => clearTimeout(timeout)
+  }, [messages.length, user, activeChannel, showMobileList, markAllAsRead])
+
+  if (!user) {
+    return (
+      <div className="flex h-[calc(100vh-5rem)] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!text.trim() && !selectedLeadId) return
-    if (!user) return
 
     sendMessage({
       userId: user.id,
@@ -66,9 +88,8 @@ export default function ChatPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !user) return
+    if (!file) return
 
-    // Allow PDF and Docx
     if (!file.type.includes('pdf') && !file.type.includes('document')) {
       toast({
         variant: 'destructive',
@@ -101,22 +122,33 @@ export default function ChatPage() {
   const filteredMessages = messages.filter((msg) => {
     if (activeChannel === 'general') return !msg.receiverId
     return (
-      (msg.userId === user?.id && msg.receiverId === activeChannel) ||
-      (msg.userId === activeChannel && msg.receiverId === user?.id)
+      (msg.userId === user.id && msg.receiverId === activeChannel) ||
+      (msg.userId === activeChannel && msg.receiverId === user.id)
     )
   })
 
   const activeChannelName =
     activeChannel === 'general'
       ? 'Canal Geral'
-      : allUsers.find((u) => u.id === activeChannel)?.name || 'Usuário'
+      : safeAllUsers.find((u) => u.id === activeChannel)?.name || 'Usuário'
 
   const activeUserStatus =
     activeChannel !== 'general'
-      ? allUsers.find((u) => u.id === activeChannel)?.isOnline
+      ? safeAllUsers.find((u) => u.id === activeChannel)?.isOnline
       : undefined
 
-  const otherUsers = allUsers.filter((u) => u.id !== user?.id)
+  const otherUsers = safeAllUsers.filter((u) => u.id !== user.id)
+
+  const getAvatar = (
+    userId: string | undefined | null,
+    fallbackName: string,
+  ) => {
+    if (!userId)
+      return `https://img.usecurling.com/ppl/thumbnail?seed=${getAvatarSeed(fallbackName)}`
+    const foundUser = safeAllUsers.find((u) => u.id === userId)
+    if (foundUser?.avatarUrl) return foundUser.avatarUrl
+    return `https://img.usecurling.com/ppl/thumbnail?seed=${getAvatarSeed(userId)}`
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)]">
@@ -130,7 +162,6 @@ export default function ChatPage() {
       </div>
 
       <div className="flex h-full gap-4 overflow-hidden relative">
-        {/* Sidebar List */}
         <Card
           className={cn(
             'w-full md:w-80 flex flex-col shrink-0 overflow-hidden absolute md:relative z-10 h-full md:h-auto inset-0 transition-transform duration-300 ease-in-out bg-background',
@@ -165,7 +196,7 @@ export default function ChatPage() {
                   </span>
                 </div>
               </div>
-              {user && getUnreadCount(user.id, 'general') > 0 && (
+              {getUnreadCount(user.id, 'general') > 0 && (
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-medium">
                   {getUnreadCount(user.id, 'general')}
                 </span>
@@ -182,7 +213,7 @@ export default function ChatPage() {
             </div>
 
             {otherUsers.map((u) => {
-              const unread = user ? getUnreadCount(user.id, u.id) : 0
+              const unread = getUnreadCount(user.id, u.id)
               return (
                 <button
                   key={u.id}
@@ -197,12 +228,7 @@ export default function ChatPage() {
                   <div className="flex items-center gap-3 relative">
                     <div className="relative">
                       <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarImage
-                          src={
-                            u.avatarUrl ||
-                            `https://img.usecurling.com/ppl/thumbnail?seed=${u.id}`
-                          }
-                        />
+                        <AvatarImage src={getAvatar(u.id, u.name)} />
                         <AvatarFallback>
                           {u.name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -232,7 +258,6 @@ export default function ChatPage() {
           </div>
         </Card>
 
-        {/* Chat Area */}
         <Card
           className={cn(
             'flex-1 flex flex-col overflow-hidden w-full absolute md:relative z-0 h-full md:h-auto inset-0 transition-transform duration-300 ease-in-out bg-background',
@@ -259,11 +284,7 @@ export default function ChatPage() {
                 <div className="relative">
                   <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage
-                      src={
-                        allUsers.find((u) => u.id === activeChannel)
-                          ?.avatarUrl ||
-                        `https://img.usecurling.com/ppl/thumbnail?seed=${activeChannel}`
-                      }
+                      src={getAvatar(activeChannel, activeChannelName)}
                     />
                     <AvatarFallback>
                       <UserIcon className="h-4 w-4" />
@@ -299,7 +320,7 @@ export default function ChatPage() {
               </div>
             ) : (
               filteredMessages.map((msg) => {
-                const isMe = msg.userId === user?.id
+                const isMe = msg.userId === user.id
                 const mentionedLead = msg.leadId
                   ? leads.find((l) => l.id === msg.leadId)
                   : null
@@ -310,13 +331,7 @@ export default function ChatPage() {
                     className={`flex gap-3 max-w-[90%] md:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
                   >
                     <Avatar className="h-8 w-8 shrink-0 shadow-sm hidden sm:flex">
-                      <AvatarImage
-                        src={
-                          allUsers.find((u) => u.id === msg.userId)
-                            ?.avatarUrl ||
-                          `https://img.usecurling.com/ppl/thumbnail?seed=${msg.userId}`
-                        }
-                      />
+                      <AvatarImage src={getAvatar(msg.userId, msg.userName)} />
                       <AvatarFallback>
                         {msg.userName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>

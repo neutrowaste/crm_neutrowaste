@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
@@ -141,43 +142,51 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const markAllAsRead = async (userId: string, channelId?: string) => {
-    const toUpdate = messages.filter((m) => {
-      const isUnread = !m.readBy.includes(userId)
-      if (!isUnread) return false
-      if (channelId) {
-        const isGeneral = channelId === 'general' && !m.receiverId
-        const isDM =
-          channelId !== 'general' &&
-          (m.userId === channelId || m.receiverId === channelId)
-        return isGeneral || isDM
+  const markAllAsRead = useCallback(
+    async (userId: string, channelId?: string) => {
+      const toUpdate = messages.filter((m) => {
+        const isUnread = !m.readBy.includes(userId)
+        if (!isUnread) return false
+        if (channelId) {
+          const isGeneral = channelId === 'general' && !m.receiverId
+          const isDM =
+            channelId !== 'general' &&
+            (m.userId === channelId || m.receiverId === channelId)
+          return isGeneral || isDM
+        }
+        return true
+      })
+
+      if (toUpdate.length === 0) return
+
+      for (const msg of toUpdate) {
+        await supabase
+          .from('chat_messages')
+          .update({
+            read_by: [...msg.readBy, userId],
+          })
+          .eq('id', msg.id)
       }
-      return true
-    })
+    },
+    [messages],
+  )
 
-    for (const msg of toUpdate) {
-      await supabase
-        .from('chat_messages')
-        .update({
-          read_by: [...msg.readBy, userId],
-        })
-        .eq('id', msg.id)
-    }
-  }
+  const getUnreadCount = useCallback(
+    (userId: string, channelId?: string) => {
+      return messages.filter((m) => {
+        const isUnread = !m.readBy.includes(userId)
+        if (!isUnread) return false
 
-  const getUnreadCount = (userId: string, channelId?: string) => {
-    return messages.filter((m) => {
-      const isUnread = !m.readBy.includes(userId)
-      if (!isUnread) return false
+        if (channelId) {
+          if (channelId === 'general') return !m.receiverId
+          return m.userId === channelId || m.receiverId === channelId
+        }
 
-      if (channelId) {
-        if (channelId === 'general') return !m.receiverId
-        return m.userId === channelId || m.receiverId === channelId
-      }
-
-      return !m.receiverId || m.receiverId === userId
-    }).length
-  }
+        return !m.receiverId || m.receiverId === userId
+      }).length
+    },
+    [messages],
+  )
 
   return (
     <ChatContext.Provider
