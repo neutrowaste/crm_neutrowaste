@@ -54,7 +54,8 @@ export function TeamPerformance() {
                 <div className="relative">
                   <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
                     <AvatarImage
-                      src={`https://img.usecurling.com/ppl/thumbnail?seed=${p.user.id}`}
+                      src={p.user.avatar_url || p.user.avatarUrl}
+                      alt={p.user.name}
                     />
                     <AvatarFallback>
                       {p.user.name.slice(0, 2).toUpperCase()}
