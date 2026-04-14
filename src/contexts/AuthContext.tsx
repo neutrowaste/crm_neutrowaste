@@ -112,13 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const checkSession = (session: any) => {
+    const handleSession = (session: any) => {
       if (!mounted) return
       const currentId = session?.user?.id || null
 
       if (currentId !== userIdRef.current) {
         userIdRef.current = currentId
         if (currentId && session?.user) {
+          setIsLoading(true)
           loadProfile(session.user)
         } else {
           setUser(null)
@@ -130,13 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      checkSession(session)
+      handleSession(session)
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      checkSession(session)
+      handleSession(session)
     })
 
     return () => {

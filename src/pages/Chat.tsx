@@ -28,15 +28,6 @@ import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
-// Helper for deterministic seed
-const getAvatarSeed = (id: string) => {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return Math.abs(hash) % 1000
-}
-
 export default function ChatPage() {
   const { messages, sendMessage, markAllAsRead, getUnreadCount } = useChat()
   const { user, allUsers } = useAuth()
@@ -139,15 +130,10 @@ export default function ChatPage() {
 
   const otherUsers = safeAllUsers.filter((u) => u.id !== user.id)
 
-  const getAvatar = (
-    userId: string | undefined | null,
-    fallbackName: string,
-  ) => {
-    if (!userId)
-      return `https://img.usecurling.com/ppl/thumbnail?seed=${getAvatarSeed(fallbackName)}`
+  const getAvatar = (userId: string | undefined | null) => {
+    if (!userId) return undefined
     const foundUser = safeAllUsers.find((u) => u.id === userId)
-    if (foundUser?.avatarUrl) return foundUser.avatarUrl
-    return `https://img.usecurling.com/ppl/thumbnail?seed=${getAvatarSeed(userId)}`
+    return foundUser?.avatarUrl || undefined
   }
 
   return (
@@ -228,7 +214,7 @@ export default function ChatPage() {
                   <div className="flex items-center gap-3 relative">
                     <div className="relative">
                       <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarImage src={getAvatar(u.id, u.name)} />
+                        <AvatarImage src={getAvatar(u.id)} />
                         <AvatarFallback>
                           {u.name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -283,9 +269,7 @@ export default function ChatPage() {
               ) : (
                 <div className="relative">
                   <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarImage
-                      src={getAvatar(activeChannel, activeChannelName)}
-                    />
+                    <AvatarImage src={getAvatar(activeChannel)} />
                     <AvatarFallback>
                       <UserIcon className="h-4 w-4" />
                     </AvatarFallback>
@@ -331,7 +315,7 @@ export default function ChatPage() {
                     className={`flex gap-3 max-w-[90%] md:max-w-[75%] animate-in fade-in slide-in-from-bottom-2 ${isMe ? 'ml-auto flex-row-reverse' : ''}`}
                   >
                     <Avatar className="h-8 w-8 shrink-0 shadow-sm hidden sm:flex">
-                      <AvatarImage src={getAvatar(msg.userId, msg.userName)} />
+                      <AvatarImage src={getAvatar(msg.userId)} />
                       <AvatarFallback>
                         {msg.userName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
