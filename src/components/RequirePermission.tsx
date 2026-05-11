@@ -21,14 +21,19 @@ export function RequirePermission({
     )
 
   if (!hasAccess) {
+    const permissions = user.permissions || []
     const firstAvailable =
-      user.permissions
-        ?.filter((p) => typeof p === 'string' && p !== '*')[0]
+      permissions
+        .filter((p) => typeof p === 'string' && p !== '*')[0]
         ?.toLowerCase() || 'dashboard'
-    if (module.toLowerCase() === firstAvailable.toLowerCase()) {
+
+    if (
+      permissions.length === 0 ||
+      module.toLowerCase() === firstAvailable.toLowerCase()
+    ) {
       return (
         <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-          <h2 className="text-2xl font-bold">Acesso Negado</h2>
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
           <p className="text-muted-foreground">
             Você não tem permissão para acessar nenhuma tela. Contate o
             administrador.

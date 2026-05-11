@@ -76,11 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: roleData } = await supabase
           .from('app_roles')
           .select('permissions')
-          .ilike('name', profile.role)
+          .ilike('name', profile.role?.trim() || '')
           .maybeSingle()
 
         if (mounted) {
-          const rawPermissions = roleData?.permissions || []
+          let rawPermissions = roleData?.permissions || []
+          if (typeof rawPermissions === 'string') {
+            try {
+              rawPermissions = JSON.parse(rawPermissions)
+            } catch (e) {
+              rawPermissions = []
+            }
+          }
           const permissionsArray = Array.isArray(rawPermissions)
             ? rawPermissions
             : []
@@ -95,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatarUrl: getPublicAvatarUrl(profile.avatar_url),
             forcePasswordChange: profile.force_password_change,
             permissions:
-              profile.role?.toLowerCase() === 'admin'
+              profile.role?.trim().toLowerCase() === 'admin'
                 ? ['*']
                 : permissionsArray,
           })
@@ -204,7 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 avatarUrl: newAvatarUrl,
                 forcePasswordChange: me.force_password_change,
                 permissions:
-                  me.role?.toLowerCase() === 'admin' ? ['*'] : prev.permissions,
+                  me.role?.trim().toLowerCase() === 'admin'
+                    ? ['*']
+                    : prev.permissions,
               }
             }
             return prev
@@ -267,6 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             'Sua conta está pendente de aprovação pelo administrador.',
           )
         }
+        // Success: do not set isLoading(false) here to avoid race conditions.
+        // Let onAuthStateChange and loadProfile finish populating the user state first.
       }
     } catch (error: any) {
       setIsLoading(false)
