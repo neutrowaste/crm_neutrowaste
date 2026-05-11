@@ -66,10 +66,19 @@ export function CreateUserDialog({
       setPassword('')
       setRole('Seller')
     } catch (err: any) {
+      let errorMessage = err.message
+
+      if (
+        errorMessage?.toLowerCase().includes('already been registered') ||
+        errorMessage?.toLowerCase().includes('already exists')
+      ) {
+        errorMessage = 'Este e-mail já está cadastrado no sistema.'
+      }
+
       toast({
         variant: 'destructive',
         title: 'Erro ao criar usuário',
-        description: err.message,
+        description: errorMessage,
       })
     } finally {
       setIsLoading(false)
