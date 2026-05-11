@@ -5,6 +5,7 @@ import {
   useEffect,
   ReactNode,
   useRef,
+  useMemo,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { sendBrowserNotification } from '@/lib/utils'
