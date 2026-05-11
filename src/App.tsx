@@ -57,19 +57,19 @@ function App() {
                 <ProtectedRoute>
                   <ChatProvider>
                     <WhatsAppProvider>
-                      <LogsProvider>
-                        <TasksProvider>
-                          <TemplatesProvider>
-                            <LeadsProvider>
+                      <LeadsProvider>
+                        <LogsProvider>
+                          <TasksProvider>
+                            <TemplatesProvider>
                               <ContractsProvider>
                                 <AutomationsProvider>
                                   <Layout />
                                 </AutomationsProvider>
                               </ContractsProvider>
-                            </LeadsProvider>
-                          </TemplatesProvider>
-                        </TasksProvider>
-                      </LogsProvider>
+                            </TemplatesProvider>
+                          </TasksProvider>
+                        </LogsProvider>
+                      </LeadsProvider>
                     </WhatsAppProvider>
                   </ChatProvider>
                 </ProtectedRoute>
