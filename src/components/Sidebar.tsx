@@ -53,8 +53,14 @@ export function Sidebar() {
   ]
 
   const hasPermission = (id: string) => {
-    if (user?.role === 'Admin' || user?.permissions?.includes('*')) return true
-    return user?.permissions?.includes(id)
+    if (
+      user?.role?.toLowerCase() === 'admin' ||
+      user?.permissions?.includes('*')
+    )
+      return true
+    return user?.permissions?.some(
+      (p) => typeof p === 'string' && p.toLowerCase() === id.toLowerCase(),
+    )
   }
 
   const navigation = allNavigation.filter((item) => hasPermission(item.id))

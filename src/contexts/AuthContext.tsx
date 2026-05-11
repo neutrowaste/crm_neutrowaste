@@ -76,10 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: roleData } = await supabase
           .from('app_roles')
           .select('permissions')
-          .eq('name', profile.role)
-          .single()
+          .ilike('name', profile.role)
+          .maybeSingle()
 
         if (mounted) {
+          const rawPermissions = roleData?.permissions || []
+          const permissionsArray = Array.isArray(rawPermissions)
+            ? rawPermissions
+            : []
+
           setUser({
             id: profile.id,
             name: profile.name,
@@ -90,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             avatarUrl: getPublicAvatarUrl(profile.avatar_url),
             forcePasswordChange: profile.force_password_change,
             permissions:
-              roleData?.permissions || (profile.role === 'Admin' ? ['*'] : []),
+              profile.role?.toLowerCase() === 'admin'
+                ? ['*']
+                : permissionsArray,
           })
           setIsLoading(false)
         }
@@ -196,6 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isOnline: me.is_online,
                 avatarUrl: newAvatarUrl,
                 forcePasswordChange: me.force_password_change,
+                permissions:
+                  me.role?.toLowerCase() === 'admin' ? ['*'] : prev.permissions,
               }
             }
             return prev
