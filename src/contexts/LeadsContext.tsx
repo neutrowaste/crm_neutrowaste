@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { calculateLeadScore, sendBrowserNotification } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 export interface Lead {
   id: string
@@ -64,6 +65,7 @@ const mapLead = (data: any): Lead => ({
 })
 
 export function LeadsProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem('@neutrowaste:notifications')
@@ -71,11 +73,18 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
+    if (!user) return
     const fetchLeads = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false })
+
+      if (user.role !== 'Admin') {
+        query = query.eq('assigned_to', user.id)
+      }
+
+      const { data } = await query
       if (data) setLeads(data.map(mapLead))
     }
     fetchLeads()
@@ -94,7 +103,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [user?.id, user?.role])
 
   useEffect(() => {
     localStorage.setItem(

@@ -9,6 +9,7 @@ import {
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useLeads } from '@/contexts/LeadsContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { addDays } from 'date-fns'
 
 export type ContractStatus =
@@ -60,6 +61,7 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>([])
   const { toast } = useToast()
   const { leads, addNotification } = useLeads()
+  const { user } = useAuth()
   const prevContractsRef = useRef<Contract[]>([])
 
   useEffect(() => {
@@ -155,9 +157,22 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
     setContracts((prev) => prev.filter((c) => c.id !== id))
   }
 
+  const filteredContracts = useMemo(() => {
+    if (user?.role === 'Admin') return contracts
+    const leadIds = leads.map((l) => l.id)
+    return contracts.filter(
+      (c) => c.uploadedBy === user?.id || leadIds.includes(c.leadId),
+    )
+  }, [contracts, leads, user?.id, user?.role])
+
   return (
     <ContractsContext.Provider
-      value={{ contracts, addContract, updateContractStatus, deleteContract }}
+      value={{
+        contracts: filteredContracts,
+        addContract,
+        updateContractStatus,
+        deleteContract,
+      }}
     >
       {children}
     </ContractsContext.Provider>

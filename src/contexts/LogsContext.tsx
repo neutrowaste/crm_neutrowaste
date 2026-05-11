@@ -3,9 +3,12 @@ import {
   useContext,
   useState,
   useEffect,
+  useMemo,
   ReactNode,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { useLeads } from '@/contexts/LeadsContext'
 
 export interface Log {
   id: string
@@ -37,6 +40,8 @@ const mapLog = (data: any): Log => ({
 })
 
 export function LogsProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  const { leads } = useLeads()
   const [logs, setLogs] = useState<Log[]>([])
 
   useEffect(() => {
@@ -49,6 +54,14 @@ export function LogsProvider({ children }: { children: ReactNode }) {
     }
     fetchLogs()
   }, [])
+
+  const filteredLogs = useMemo(() => {
+    if (user?.role === 'Admin') return logs
+    const leadIds = leads.map((l) => l.id)
+    return logs.filter(
+      (l) => l.userId === user?.id || (l.leadId && leadIds.includes(l.leadId)),
+    )
+  }, [logs, leads, user?.id, user?.role])
 
   const addLog = async (log: Omit<Log, 'id' | 'timestamp'>) => {
     const { data, error } = await supabase
@@ -73,7 +86,7 @@ export function LogsProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <LogsContext.Provider value={{ logs, addLog }}>
+    <LogsContext.Provider value={{ logs: filteredLogs, addLog }}>
       {children}
     </LogsContext.Provider>
   )

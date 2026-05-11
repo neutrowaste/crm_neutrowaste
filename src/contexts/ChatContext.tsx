@@ -4,10 +4,12 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { sendBrowserNotification } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 export interface ChatMessage {
   id: string
@@ -47,6 +49,7 @@ const mapMsg = (data: any): ChatMessage => ({
 })
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
   useEffect(() => {
@@ -188,9 +191,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [messages],
   )
 
+  const filteredMessages = useMemo(() => {
+    if (user?.role === 'Admin') return messages
+    return messages.filter(
+      (m) =>
+        !m.receiverId || m.receiverId === user?.id || m.userId === user?.id,
+    )
+  }, [messages, user?.id, user?.role])
+
   return (
     <ChatContext.Provider
-      value={{ messages, sendMessage, markAllAsRead, getUnreadCount }}
+      value={{
+        messages: filteredMessages,
+        sendMessage,
+        markAllAsRead,
+        getUnreadCount,
+      }}
     >
       {children}
     </ChatContext.Provider>

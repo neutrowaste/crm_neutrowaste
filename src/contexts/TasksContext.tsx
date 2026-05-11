@@ -8,6 +8,8 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { sendBrowserNotification } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { useLeads } from '@/contexts/LeadsContext'
 
 export interface Task {
   id: string
@@ -42,6 +44,8 @@ const mapTask = (data: any): Task => ({
 })
 
 export function TasksProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  const { leads } = useLeads()
   const [tasks, setTasks] = useState<Task[]>([])
   const notifiedTasks = useRef<Set<string>>(new Set())
 
@@ -53,10 +57,16 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     fetchTasks()
   }, [])
 
+  const filteredTasks = useMemo(() => {
+    if (user?.role === 'Admin') return tasks
+    const leadIds = leads.map((l) => l.id)
+    return tasks.filter((t) => !t.leadId || leadIds.includes(t.leadId))
+  }, [tasks, leads, user?.id, user?.role])
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
-      tasks.forEach((task) => {
+      filteredTasks.forEach((task) => {
         if (task.completed || notifiedTasks.current.has(task.id)) return
         try {
           const taskDate = new Date(`${task.dueDate}T${task.time}:00`)
@@ -76,7 +86,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     }, 60000)
 
     return () => clearInterval(interval)
-  }, [tasks])
+  }, [filteredTasks])
 
   const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
     const { data, error } = await supabase
@@ -134,7 +144,13 @@ export function TasksProvider({ children }: { children: ReactNode }) {
 
   return (
     <TasksContext.Provider
-      value={{ tasks, addTask, updateTask, deleteTask, toggleComplete }}
+      value={{
+        tasks: filteredTasks,
+        addTask,
+        updateTask,
+        deleteTask,
+        toggleComplete,
+      }}
     >
       {children}
     </TasksContext.Provider>
