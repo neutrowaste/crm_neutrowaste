@@ -185,4 +185,5 @@ export function useContracts() {
   if (context === undefined) {
     throw new Error('useContracts must be used within a ContractsProvider')
   }
-  return
+  return context
+}
