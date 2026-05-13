@@ -43,21 +43,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSessionUser(session?.user ?? null)
+      setIsInitialized(true)
     })
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSessionUser(session?.user ?? null)
+      setIsInitialized(true)
     })
     return () => subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
     let mounted = true
+
+    if (!isInitialized) return
 
     if (!sessionUser) {
       setUser(null)

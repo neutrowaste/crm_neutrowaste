@@ -75,15 +75,15 @@ export default function ContractsPage() {
                   </p>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 space-y-3 pt-2">
-                <div className="flex justify-between items-center text-sm mb-3">
+              <CardContent className="flex-1 space-y-4 pt-2">
+                <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Status:</span>
                   <span className="font-medium bg-secondary px-2 py-0.5 rounded-full text-xs">
                     {contract.status}
                   </span>
                 </div>
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1 w-full">
+                <div className="flex flex-col xl:flex-row justify-between items-start gap-4">
+                  <div className="flex flex-wrap gap-x-6 gap-y-4 flex-1">
                     {contract.data_inicio && (
                       <div className="flex flex-col space-y-1">
                         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
@@ -91,7 +91,7 @@ export default function ContractsPage() {
                         </span>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate">
+                          <span className="whitespace-nowrap">
                             {formatDisplayDate(contract.data_inicio)}
                           </span>
                         </div>
@@ -104,7 +104,7 @@ export default function ContractsPage() {
                         </span>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate">
+                          <span className="whitespace-nowrap">
                             {formatDisplayDate(contract.data_termino)}
                           </span>
                         </div>
@@ -117,21 +117,21 @@ export default function ContractsPage() {
                         </span>
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate">
+                          <span className="whitespace-nowrap">
                             {contract.vigencia} meses
                           </span>
                         </div>
                       </div>
                     )}
                     {contract.nome_gestor && (
-                      <div className="flex flex-col space-y-1">
+                      <div className="flex flex-col space-y-1 max-w-full">
                         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                           Gestor
                         </span>
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span
-                            className="truncate"
+                            className="truncate max-w-[150px]"
                             title={contract.nome_gestor}
                           >
                             {contract.nome_gestor}
@@ -140,13 +140,13 @@ export default function ContractsPage() {
                       </div>
                     )}
                     {contract.telefone_gestor && (
-                      <div className="flex flex-col space-y-1 col-span-2 sm:col-span-1">
+                      <div className="flex flex-col space-y-1">
                         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                           Telefone
                         </span>
                         <div className="flex items-center gap-2 text-sm">
                           <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="truncate">
+                          <span className="whitespace-nowrap">
                             {contract.telefone_gestor}
                           </span>
                         </div>
@@ -155,8 +155,8 @@ export default function ContractsPage() {
                   </div>
 
                   {contract.data_termino && (
-                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l pt-3 sm:pt-0 sm:pl-4 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 bg-secondary/20 sm:bg-transparent p-3 sm:p-0 rounded-md sm:rounded-none">
-                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0 sm:mb-1 flex items-center gap-1">
+                    <div className="flex flex-row xl:flex-col items-center xl:items-end justify-between xl:justify-center border-t xl:border-t-0 xl:border-l border-border pt-4 xl:pt-0 xl:pl-4 mt-2 xl:mt-0 w-full xl:w-auto shrink-0 bg-secondary/10 xl:bg-transparent p-3 xl:p-0 rounded-md xl:rounded-none">
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0 xl:mb-1 flex items-center gap-1">
                         Prazo Restante
                       </span>
                       {(() => {
@@ -168,7 +168,7 @@ export default function ContractsPage() {
                         return (
                           <span
                             className={cn(
-                              'text-lg sm:text-base font-bold',
+                              'text-lg font-bold whitespace-nowrap',
                               isExpiringSoon
                                 ? 'text-red-600 dark:text-red-500'
                                 : 'text-green-600 dark:text-green-500',
@@ -178,13 +178,13 @@ export default function ContractsPage() {
                               ? `${days} dias`
                               : days === 0
                                 ? 'Vence hoje'
-                                : `${Math.abs(days)} dias`}
+                                : `${Math.abs(days)} dias atrasado`}
                           </span>
                         )
                       })()}
                     </div>
                   )}
-                </div>{' '}
+                </div>
               </CardContent>
               {contract.file_url && (
                 <CardFooter className="pt-0">
