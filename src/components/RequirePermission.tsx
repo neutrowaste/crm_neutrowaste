@@ -2,46 +2,38 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function RequirePermission({
-  module,
   children,
+  module,
 }: {
-  module: string
   children: React.ReactNode
+  module: string
 }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
-  if (!user) return <Navigate to="/login" replace />
+  if (loading) {
+    return null
+  }
 
-  const isAdmin =
-    user.role?.toLowerCase() === 'admin' || user.permissions?.includes('*')
-  const hasAccess =
-    isAdmin ||
-    user.permissions?.some(
-      (p) => typeof p === 'string' && p.toLowerCase() === module.toLowerCase(),
-    )
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
 
-  if (!hasAccess) {
-    const permissions = user.permissions || []
-    const firstAvailable =
-      permissions
-        .filter((p) => typeof p === 'string' && p !== '*')[0]
-        ?.toLowerCase() || 'dashboard'
-
+  const hasPermission = () => {
     if (
-      permissions.length === 0 ||
-      module.toLowerCase() === firstAvailable.toLowerCase()
+      user?.role?.toLowerCase() === 'admin' ||
+      user?.permissions?.includes('*')
     ) {
-      return (
-        <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
-          <p className="text-muted-foreground">
-            Você não tem permissão para acessar nenhuma tela. Contate o
-            administrador.
-          </p>
-        </div>
-      )
+      return true
     }
-    return <Navigate to={`/${firstAvailable}`} replace />
+
+    return user?.permissions?.some(
+      (p: string) =>
+        typeof p === 'string' && p.toLowerCase() === module.toLowerCase(),
+    )
+  }
+
+  if (!hasPermission()) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return <>{children}</>
