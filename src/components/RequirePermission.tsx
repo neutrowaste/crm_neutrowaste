@@ -1,17 +1,24 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { Loader2 } from 'lucide-react'
+
+interface RequirePermissionProps {
+  children: React.ReactNode
+  module: string
+}
 
 export function RequirePermission({
   children,
   module,
-}: {
-  children: React.ReactNode
-  module: string
-}) {
-  const { user, loading } = useAuth()
+}: RequirePermissionProps) {
+  const { user, isLoading } = useAuth()
 
-  if (loading) {
-    return null
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   if (!user) {
@@ -20,20 +27,33 @@ export function RequirePermission({
 
   const hasPermission = () => {
     if (
-      user?.role?.toLowerCase() === 'admin' ||
-      user?.permissions?.includes('*')
+      user.role?.toLowerCase() === 'admin' ||
+      user.permissions?.includes('*')
     ) {
       return true
     }
-
-    return user?.permissions?.some(
-      (p: string) =>
-        typeof p === 'string' && p.toLowerCase() === module.toLowerCase(),
+    return user.permissions?.some(
+      (p) => typeof p === 'string' && p.toLowerCase() === module.toLowerCase(),
     )
   }
 
   if (!hasPermission()) {
-    return <Navigate to="/dashboard" replace />
+    // Navigate to dashboard only if they are not already trying to access it
+    if (module.toLowerCase() !== 'dashboard') {
+      return <Navigate to="/dashboard" replace />
+    }
+    // Fallback UI if they don't even have dashboard permission to avoid loops
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50 dark:bg-zinc-950">
+        <div className="bg-white dark:bg-zinc-900 border border-destructive/20 text-destructive p-8 rounded-xl max-w-md shadow-sm text-center">
+          <h2 className="text-xl font-bold mb-3">Acesso Negado</h2>
+          <p className="text-sm opacity-90">
+            Você não tem permissão para acessar o sistema. Contate o
+            administrador para solicitar liberação.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>
