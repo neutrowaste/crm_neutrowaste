@@ -34,6 +34,11 @@ export function RequirePermission({
     ) {
       return true
     }
+
+    if (module.trim().toLowerCase() === 'dashboard') {
+      return true
+    }
+
     return user.permissions?.some(
       (p) =>
         typeof p === 'string' &&

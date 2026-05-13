@@ -121,9 +121,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               rawPermissions = []
             }
           }
-          const permissionsArray = Array.isArray(rawPermissions)
+          let permissionsArray = Array.isArray(rawPermissions)
             ? rawPermissions
             : []
+
+          if (
+            permissionsArray.length === 0 &&
+            profile.role?.trim().toLowerCase() !== 'admin'
+          ) {
+            permissionsArray = [
+              'dashboard',
+              'leads',
+              'calendar',
+              'kanban',
+              'chat',
+              'contracts',
+            ]
+          }
 
           setUser({
             id: profile.id,
@@ -219,7 +233,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 permissions:
                   me.role?.trim().toLowerCase() === 'admin'
                     ? ['*']
-                    : prev.permissions,
+                    : prev.permissions && prev.permissions.length > 0
+                      ? prev.permissions
+                      : [
+                          'dashboard',
+                          'leads',
+                          'calendar',
+                          'kanban',
+                          'chat',
+                          'contracts',
+                        ],
               }
             }
             return prev
