@@ -136,10 +136,10 @@ export default function Login() {
           title: 'Acesso Negado',
           description: error.message,
         })
-      } else if (msg.includes('pendente')) {
+      } else if (msg.includes('pendente') || msg.includes('aprovação')) {
         toast({
           variant: 'destructive',
-          title: 'Conta em Análise',
+          title: 'Acesso Negado',
           description: error.message,
         })
       } else if (

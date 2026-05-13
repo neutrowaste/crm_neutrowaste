@@ -72,18 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const loadProfile = async () => {
       try {
-        const { data: profile, error } = await supabase
+        let { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', sessionUser.id)
           .single()
 
         if (error || !profile) {
-          if (mounted) {
-            setUser(null)
-            setIsLoading(false)
+          await supabase.rpc('restore_my_profile')
+          const retry = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sessionUser.id)
+            .single()
+          profile = retry.data
+          error = retry.error
+
+          if (error || !profile) {
+            if (mounted) {
+              setUser(null)
+              setIsLoading(false)
+            }
+            return
           }
-          return
         }
 
         if (profile.status !== 'active') {
@@ -259,11 +270,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('profiles')
           .select('status')
           .eq('id', data.user.id)
           .single()
+
+        if (!profile) {
+          await supabase.rpc('restore_my_profile')
+          const retry = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', data.user.id)
+            .single()
+          profile = retry.data
+        }
 
         if (profile && profile.status !== 'active') {
           await supabase.auth.signOut()
