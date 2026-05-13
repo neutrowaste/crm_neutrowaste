@@ -6,8 +6,24 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card'
-import { FileText, Loader2, Calendar, Phone, User } from 'lucide-react'
+import { FileText, Loader2, Calendar, Phone, User, Clock } from 'lucide-react'
 import { AddContractDialog } from '@/components/AddContractDialog'
+import { differenceInDays, parseISO, format } from 'date-fns'
+import { cn } from '@/lib/utils'
+
+const calculateRemainingDays = (endDate: string | null) => {
+  if (!endDate) return null
+  return differenceInDays(parseISO(endDate), new Date())
+}
+
+const formatDisplayDate = (dateString: string | null) => {
+  if (!dateString) return null
+  try {
+    return format(parseISO(dateString), 'dd/MM/yyyy')
+  } catch (e) {
+    return dateString
+  }
+}
 
 export default function ContractsPage() {
   const { contracts, isLoading } = useContracts()
@@ -66,24 +82,77 @@ export default function ContractsPage() {
                     {contract.status}
                   </span>
                 </div>
-                {contract.vigencia && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4 shrink-0" />
-                    <span>Vigência: {contract.vigencia} meses</span>
+
+                <div className="flex justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    {contract.vigencia && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 shrink-0" />
+                        <span>Vigência: {contract.vigencia} meses</span>
+                      </div>
+                    )}
+                    {contract.data_inicio && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 shrink-0" />
+                        <span>
+                          Início: {formatDisplayDate(contract.data_inicio)}
+                        </span>
+                      </div>
+                    )}
+                    {contract.data_termino && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 shrink-0" />
+                        <span>
+                          Término: {formatDisplayDate(contract.data_termino)}
+                        </span>
+                      </div>
+                    )}
+                    {contract.nome_gestor && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{contract.nome_gestor}</span>
+                      </div>
+                    )}
+                    {contract.telefone_gestor && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-4 w-4 shrink-0" />
+                        <span>{contract.telefone_gestor}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {contract.nome_gestor && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{contract.nome_gestor}</span>
-                  </div>
-                )}
-                {contract.telefone_gestor && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    <span>{contract.telefone_gestor}</span>
-                  </div>
-                )}
+
+                  {contract.data_termino && (
+                    <div className="flex flex-col items-end justify-center border-l pl-4 text-right shrink-0">
+                      <span className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Prazo
+                      </span>
+                      {(() => {
+                        const days = calculateRemainingDays(
+                          contract.data_termino,
+                        )
+                        if (days === null) return null
+                        const isExpiringSoon = days <= 30
+                        return (
+                          <span
+                            className={cn(
+                              'text-sm font-bold',
+                              isExpiringSoon
+                                ? 'text-red-600'
+                                : 'text-green-600',
+                            )}
+                          >
+                            {days > 0
+                              ? `${days} dias`
+                              : days === 0
+                                ? 'Vence hoje'
+                                : `${Math.abs(days)} dias`}
+                          </span>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </div>
               </CardContent>
               {contract.file_url && (
                 <CardFooter className="pt-0">
