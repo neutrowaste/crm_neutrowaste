@@ -60,9 +60,31 @@ export function LogsProvider({ children }: { children: ReactNode }) {
 
   const addLog = async (log: Partial<Log>) => {
     try {
+      const payload: any = {
+        ...log,
+        timestamp: new Date().toISOString(),
+      }
+
+      if ('userId' in payload) {
+        payload.user_id = payload.userId
+        delete payload.userId
+      }
+      if ('userName' in payload) {
+        payload.user_name = payload.userName
+        delete payload.userName
+      }
+      if ('leadId' in payload) {
+        payload.lead_id = payload.leadId
+        delete payload.leadId
+      }
+      if ('leadName' in payload) {
+        payload.lead_name = payload.leadName
+        delete payload.leadName
+      }
+
       const { data, error } = await supabase
         .from('logs')
-        .insert([{ ...log, timestamp: new Date().toISOString() } as any])
+        .insert([payload])
         .select()
         .single()
 
