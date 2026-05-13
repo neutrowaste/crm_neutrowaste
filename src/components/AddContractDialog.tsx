@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { useContracts } from '@/contexts/ContractsContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLeads } from '@/contexts/LeadsContext'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Plus, Loader2 } from 'lucide-react'
@@ -33,11 +34,11 @@ export function AddContractDialog({
 }: AddContractDialogProps = {}) {
   const { addContract } = useContracts()
   const { user } = useAuth()
+  const { leads } = useLeads()
   const { toast } = useToast()
 
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [leads, setLeads] = useState<any[]>([])
 
   const [leadId, setLeadId] = useState(defaultLeadId || '')
   const [name, setName] = useState('')
@@ -52,13 +53,6 @@ export function AddContractDialog({
   useEffect(() => {
     if (open) {
       setLeadId(defaultLeadId || '')
-      supabase
-        .from('leads')
-        .select('id, name, company')
-        .order('name')
-        .then(({ data }) => {
-          if (data) setLeads(data)
-        })
     }
   }, [open, defaultLeadId])
 

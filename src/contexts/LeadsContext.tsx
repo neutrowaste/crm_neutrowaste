@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
@@ -72,6 +73,8 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : []
   })
 
+  const isAddingRef = useRef(false)
+
   useEffect(() => {
     if (!user) return
     const fetchLeads = async () => {
@@ -85,7 +88,14 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       }
 
       const { data } = await query
-      if (data) setLeads(data.map(mapLead))
+      if (data) {
+        const mapped = data.map(mapLead)
+        // Remover duplicados pelo ID para garantir integridade visual
+        const unique = Array.from(
+          new Map(mapped.map((item) => [item.id, item])).values(),
+        )
+        setLeads(unique)
+      }
     }
     fetchLeads()
 
@@ -129,41 +139,51 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const addLead = async (
     newLead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<string> => {
-    const { data, error } = await supabase
-      .from('leads')
-      .insert({
-        name: newLead.name,
-        company: newLead.company,
-        email: newLead.email,
-        phone: newLead.phone,
-        status: newLead.status,
-        source: newLead.source,
-        value: newLead.value,
-        industry: newLead.industry,
-        notes: newLead.notes,
-        assigned_to: newLead.assignedTo,
-      })
-      .select()
-      .single()
+    if (isAddingRef.current) throw new Error('Aguarde o cadastro anterior...')
+    isAddingRef.current = true
 
-    if (error) throw error
-    if (data) {
-      const lead = mapLead(data)
-      setLeads((prev) => [lead, ...prev])
-      addNotification(`Novo lead: ${lead.name} cadastrado`)
-
-      const score = calculateLeadScore(lead)
-      if (score >= 80) {
-        sendBrowserNotification('🚀 Lead Quente!', {
-          body: `O lead ${lead.name} foi criado com score alto (${score})!`,
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .insert({
+          name: newLead.name,
+          company: newLead.company,
+          email: newLead.email,
+          phone: newLead.phone,
+          status: newLead.status,
+          source: newLead.source,
+          value: newLead.value,
+          industry: newLead.industry,
+          notes: newLead.notes,
+          assigned_to: newLead.assignedTo,
         })
-        addNotification(
-          `Atenção: Novo lead ${lead.name} com Score Alto (${score})`,
-        )
+        .select()
+        .single()
+
+      if (error) throw error
+      if (data) {
+        const lead = mapLead(data)
+        setLeads((prev) => {
+          if (prev.some((l) => l.id === lead.id)) return prev
+          return [lead, ...prev]
+        })
+        addNotification(`Novo lead: ${lead.name} cadastrado`)
+
+        const score = calculateLeadScore(lead)
+        if (score >= 80) {
+          sendBrowserNotification('🚀 Lead Quente!', {
+            body: `O lead ${lead.name} foi criado com score alto (${score})!`,
+          })
+          addNotification(
+            `Atenção: Novo lead ${lead.name} com Score Alto (${score})`,
+          )
+        }
+        return lead.id
       }
-      return lead.id
+      return ''
+    } finally {
+      isAddingRef.current = false
     }
-    return ''
   }
 
   const updateLead = async (id: string, updatedData: Partial<Lead>) => {
