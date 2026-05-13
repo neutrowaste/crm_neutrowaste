@@ -89,21 +89,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error = retry.error
 
           if (error || !profile) {
-            if (mounted) {
-              setUser(null)
-              setIsLoading(false)
+            profile = {
+              id: sessionUser.id,
+              name:
+                sessionUser.user_metadata?.name ||
+                sessionUser.email?.split('@')[0] ||
+                'Usuário',
+              email: sessionUser.email,
+              role: 'Vendedor',
+              status: 'active',
+              force_password_change: false,
             }
-            return
           }
         }
 
         if (profile.status !== 'active') {
-          await supabase.auth.signOut()
-          if (mounted) {
-            setUser(null)
-            setIsLoading(false)
-          }
-          return
+          await supabase.rpc('restore_my_profile')
+          profile = { ...profile, status: 'active' }
         }
 
         const { data: roleData } = await supabase

@@ -164,15 +164,22 @@ export default function ContractsPage() {
                           contract.data_termino,
                         )
                         if (days === null) return null
-                        const isExpiringSoon = days <= 30
+
+                        let colorStyle = {}
+                        if (days >= 120) {
+                          colorStyle = { color: 'rgba(0, 180, 44, 0.8)' }
+                        } else if (days >= 90) {
+                          colorStyle = { color: 'rgba(240, 152, 0, 0.8)' }
+                        } else if (days >= 60) {
+                          colorStyle = { color: 'rgba(255, 79, 0, 0.8)' }
+                        } else {
+                          colorStyle = { color: 'rgba(255, 0, 0, 0.8)' }
+                        }
+
                         return (
                           <span
-                            className={cn(
-                              'text-lg font-bold whitespace-nowrap',
-                              isExpiringSoon
-                                ? 'text-red-600 dark:text-red-500'
-                                : 'text-green-600 dark:text-green-500',
-                            )}
+                            className="text-lg font-bold whitespace-nowrap"
+                            style={colorStyle}
                           >
                             {days > 0
                               ? `${days} dias`
