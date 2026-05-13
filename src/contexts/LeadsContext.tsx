@@ -83,7 +83,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (user.role !== 'Admin') {
+      if (user.role?.toLowerCase() !== 'admin') {
         query = query.eq('assigned_to', user.id)
       }
 
@@ -155,7 +155,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
           value: newLead.value,
           industry: newLead.industry,
           notes: newLead.notes,
-          assigned_to: newLead.assignedTo,
+          assigned_to: newLead.assignedTo || user?.id,
         })
         .select()
         .single()

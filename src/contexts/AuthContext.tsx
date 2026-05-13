@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false
     }
-  }, [sessionUser])
+  }, [sessionUser, isInitialized])
 
   useEffect(() => {
     if (!user?.id) {

@@ -53,10 +53,16 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
     if (!user) return
     setIsLoading(true)
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('contracts')
         .select('*, leads(name, company)')
         .order('created_at', { ascending: false })
+
+      if (user.role?.toLowerCase() !== 'admin') {
+        query = query.eq('uploaded_by', user.id)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setContracts(data || [])
@@ -78,9 +84,14 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
 
   const addContract = async (contract: Partial<Contract>) => {
     try {
+      const payload = {
+        ...contract,
+        uploaded_by: contract.uploaded_by || user?.id,
+        uploaded_by_name: contract.uploaded_by_name || user?.name,
+      }
       const { data, error } = await supabase
         .from('contracts')
-        .insert([contract as any])
+        .insert([payload as any])
         .select('*, leads(name, company)')
         .single()
 
