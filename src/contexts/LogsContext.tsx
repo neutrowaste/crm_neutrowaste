@@ -8,92 +8,89 @@ import {
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { useLeads } from '@/contexts/LeadsContext'
+import { useToast } from '@/hooks/use-toast'
 
 export interface Log {
   id: string
-  userId: string
-  userName: string
+  user_id: string | null
+  user_name: string
   action: string
-  leadId: string
-  leadName: string
+  lead_id: string | null
+  lead_name: string
   details: string
   timestamp: string
 }
 
 interface LogsContextType {
   logs: Log[]
-  addLog: (log: Omit<Log, 'id' | 'timestamp'>) => Promise<void>
+  isLoading: boolean
+  fetchLogs: () => Promise<void>
+  addLog: (log: Partial<Log>) => Promise<void>
 }
 
 const LogsContext = createContext<LogsContextType | undefined>(undefined)
 
-const mapLog = (data: any): Log => ({
-  id: data.id,
-  userId: data.user_id || 'system',
-  userName: data.user_name,
-  action: data.action,
-  leadId: data.lead_id || '',
-  leadName: data.lead_name,
-  details: data.details,
-  timestamp: data.timestamp || data.created_at,
-})
-
 export function LogsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const { leads } = useLeads()
   const [logs, setLogs] = useState<Log[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const { user } = useAuth()
+  const { toast } = useToast()
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const { data } = await supabase
+  const fetchLogs = async () => {
+    if (!user) return
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase
         .from('logs')
         .select('*')
         .order('timestamp', { ascending: false })
-      if (data) setLogs(data.map(mapLog))
-    }
-    fetchLogs()
-  }, [])
 
-  const filteredLogs = useMemo(() => {
-    if (user?.role === 'Admin') return logs
-    const leadIds = leads.map((l) => l.id)
-    return logs.filter(
-      (l) => l.userId === user?.id || (l.leadId && leadIds.includes(l.leadId)),
-    )
-  }, [logs, leads, user?.id, user?.role])
-
-  const addLog = async (log: Omit<Log, 'id' | 'timestamp'>) => {
-    const { data, error } = await supabase
-      .from('logs')
-      .insert({
-        user_id:
-          log.userId !== 'system' && log.userId !== 'customer'
-            ? log.userId
-            : null,
-        user_name: log.userName,
-        action: log.action,
-        lead_id: log.leadId || null,
-        lead_name: log.leadName,
-        details: log.details,
-      })
-      .select()
-      .single()
-
-    if (!error && data) {
-      setLogs((prev) => [mapLog(data), ...prev])
+      if (error) throw error
+      setLogs(data || [])
+    } catch (error: any) {
+      console.error('Error fetching logs:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  return (
-    <LogsContext.Provider value={{ logs: filteredLogs, addLog }}>
-      {children}
-    </LogsContext.Provider>
+  useEffect(() => {
+    fetchLogs()
+  }, [user])
+
+  const addLog = async (log: Partial<Log>) => {
+    try {
+      const { data, error } = await supabase
+        .from('logs')
+        .insert([{ ...log, timestamp: new Date().toISOString() } as any])
+        .select()
+        .single()
+
+      if (error) throw error
+      setLogs((prev) => [data, ...prev])
+    } catch (error: any) {
+      console.error('Error adding log:', error)
+      throw error
+    }
+  }
+
+  const value = useMemo(
+    () => ({
+      logs,
+      isLoading,
+      fetchLogs,
+      addLog,
+    }),
+    [logs, isLoading],
   )
+
+  return <LogsContext.Provider value={value}>{children}</LogsContext.Provider>
 }
 
 export function useLogs() {
   const context = useContext(LogsContext)
-  if (!context) throw new Error('useLogs must be used within LogsProvider')
+  if (context === undefined) {
+    throw new Error('useLogs must be used within a LogsProvider')
+  }
   return context
 }

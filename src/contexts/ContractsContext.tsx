@@ -3,41 +3,32 @@ import {
   useContext,
   useState,
   useEffect,
-  ReactNode,
-  useRef,
   useMemo,
+  ReactNode,
 } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useToast } from '@/hooks/use-toast'
-import { useLeads } from '@/contexts/LeadsContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { addDays } from 'date-fns'
-
-export type ContractStatus =
-  | 'Draft'
-  | 'Sent for Signature'
-  | 'Signed'
-  | 'Rejected'
+import { useToast } from '@/hooks/use-toast'
 
 export interface Contract {
   id: string
-  leadId: string
+  lead_id: string
   name: string
-  status: ContractStatus
-  uploadedBy: string
-  uploadedByName: string
-  createdAt: string
-  updatedAt: string
-  fileUrl?: string
-  expiresAt?: string
+  status: string
+  uploaded_by: string | null
+  uploaded_by_name: string | null
+  file_url: string | null
+  expires_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 interface ContractsContextType {
   contracts: Contract[]
-  addContract: (
-    contract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
-  ) => Promise<string>
-  updateContractStatus: (id: string, status: ContractStatus) => Promise<void>
+  isLoading: boolean
+  fetchContracts: () => Promise<void>
+  addContract: (contract: Partial<Contract>) => Promise<void>
+  updateContract: (id: string, updates: Partial<Contract>) => Promise<void>
   deleteContract: (id: string) => Promise<void>
 }
 
@@ -45,136 +36,115 @@ const ContractsContext = createContext<ContractsContextType | undefined>(
   undefined,
 )
 
-const mapContract = (data: any): Contract => ({
-  id: data.id,
-  leadId: data.lead_id,
-  name: data.name,
-  status: data.status,
-  uploadedBy: data.uploaded_by || '',
-  uploadedByName: data.uploaded_by_name || 'Usuário',
-  createdAt: data.created_at,
-  updatedAt: data.updated_at,
-  fileUrl: data.file_url || undefined,
-  expiresAt: data.expires_at || undefined,
-})
-
 export function ContractsProvider({ children }: { children: ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>([])
-  const { toast } = useToast()
-  const { leads, addNotification } = useLeads()
+  const [isLoading, setIsLoading] = useState(false)
   const { user } = useAuth()
-  const prevContractsRef = useRef<Contract[]>([])
+  const { toast } = useToast()
 
-  useEffect(() => {
-    const fetchContracts = async () => {
-      const { data } = await supabase
+  const fetchContracts = async () => {
+    if (!user) return
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase
         .from('contracts')
         .select('*')
         .order('created_at', { ascending: false })
-      if (data) {
-        const mapped = data.map(mapContract)
-        setContracts(mapped)
-        prevContractsRef.current = mapped
-      }
-    }
-    fetchContracts()
 
-    const channel = supabase
-      .channel('public:contracts')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'contracts' },
-        (payload) => {
-          fetchContracts()
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
-
-  const addContract = async (
-    newContract: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<string> => {
-    const { data, error } = await supabase
-      .from('contracts')
-      .insert({
-        lead_id: newContract.leadId,
-        name: newContract.name,
-        status: newContract.status,
-        uploaded_by: newContract.uploadedBy,
-        uploaded_by_name: newContract.uploadedByName,
-        file_url: newContract.fileUrl,
-        expires_at:
-          newContract.expiresAt || addDays(new Date(), 30).toISOString(),
+      if (error) throw error
+      setContracts(data || [])
+    } catch (error: any) {
+      console.error('Error fetching contracts:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os contratos.',
+        variant: 'destructive',
       })
-      .select()
-      .single()
-
-    if (error) throw error
-    if (data) {
-      const contract = mapContract(data)
-      setContracts((prev) => [contract, ...prev])
-      return contract.id
+    } finally {
+      setIsLoading(false)
     }
-    return ''
   }
 
-  const updateContractStatus = async (id: string, status: ContractStatus) => {
-    const { data, error } = await supabase
-      .from('contracts')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
+  useEffect(() => {
+    fetchContracts()
+  }, [user])
+
+  const addContract = async (contract: Partial<Contract>) => {
+    try {
+      const { data, error } = await supabase
+        .from('contracts')
+        .insert([contract as any])
+        .select()
+        .single()
+
+      if (error) throw error
+      setContracts((prev) => [data, ...prev])
+      toast({ title: 'Sucesso', description: 'Contrato adicionado.' })
+    } catch (error: any) {
+      console.error('Error adding contract:', error)
+      toast({
+        title: 'Erro',
+        description: 'Falha ao adicionar contrato.',
+        variant: 'destructive',
       })
-      .eq('id', id)
-      .select()
-      .single()
+      throw error
+    }
+  }
 
-    if (error) throw error
-    if (data) {
-      const contract = mapContract(data)
-      setContracts((prev) => prev.map((c) => (c.id === id ? contract : c)))
+  const updateContract = async (id: string, updates: Partial<Contract>) => {
+    try {
+      const { data, error } = await supabase
+        .from('contracts')
+        .update(updates as any)
+        .eq('id', id)
+        .select()
+        .single()
 
-      if (status === 'Signed') {
-        const lead = leads.find((l) => l.id === contract.leadId)
-        const clientName = lead ? lead.company : 'Cliente'
-        toast({
-          title: 'Contrato Assinado!',
-          description: `Sucesso: O contrato para ${clientName} foi assinado!`,
-        })
-        addNotification(
-          `Contrato "${contract.name}" assinado por ${clientName}`,
-        )
-      }
+      if (error) throw error
+      setContracts((prev) => prev.map((c) => (c.id === id ? data : c)))
+      toast({ title: 'Sucesso', description: 'Contrato atualizado.' })
+    } catch (error: any) {
+      console.error('Error updating contract:', error)
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar contrato.',
+        variant: 'destructive',
+      })
+      throw error
     }
   }
 
   const deleteContract = async (id: string) => {
-    const { error } = await supabase.from('contracts').delete().eq('id', id)
-    if (error) throw error
-    setContracts((prev) => prev.filter((c) => c.id !== id))
+    try {
+      const { error } = await supabase.from('contracts').delete().eq('id', id)
+      if (error) throw error
+      setContracts((prev) => prev.filter((c) => c.id !== id))
+      toast({ title: 'Sucesso', description: 'Contrato excluído.' })
+    } catch (error: any) {
+      console.error('Error deleting contract:', error)
+      toast({
+        title: 'Erro',
+        description: 'Falha ao excluir contrato.',
+        variant: 'destructive',
+      })
+      throw error
+    }
   }
 
-  const filteredContracts = useMemo(() => {
-    if (user?.role === 'Admin') return contracts
-    const leadIds = leads.map((l) => l.id)
-    return contracts.filter(
-      (c) => c.uploadedBy === user?.id || leadIds.includes(c.leadId),
-    )
-  }, [contracts, leads, user?.id, user?.role])
+  const value = useMemo(
+    () => ({
+      contracts,
+      isLoading,
+      fetchContracts,
+      addContract,
+      updateContract,
+      deleteContract,
+    }),
+    [contracts, isLoading],
+  )
 
   return (
-    <ContractsContext.Provider
-      value={{
-        contracts: filteredContracts,
-        addContract,
-        updateContractStatus,
-        deleteContract,
-      }}
-    >
+    <ContractsContext.Provider value={value}>
       {children}
     </ContractsContext.Provider>
   )

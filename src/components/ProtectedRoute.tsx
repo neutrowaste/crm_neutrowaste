@@ -22,5 +22,5 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/force-change-password" replace />
   }
 
-  return <SessionTimeout>{children}</SessionTimeout>
+  return <>{children}</>
 }

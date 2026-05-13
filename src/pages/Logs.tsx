@@ -1,133 +1,101 @@
-import { useState } from 'react'
-import { useLogs } from '@/contexts/LogsContext'
-import { useAuth } from '@/contexts/AuthContext'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import { Navigate } from 'react-router-dom'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { ShieldAlert, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ShieldAlert, Loader2 } from 'lucide-react'
 
-export default function Logs() {
-  const { logs } = useLogs()
-  const { user } = useAuth()
-  const [searchTerm, setSearchTerm] = useState('')
+export default function LogsPage() {
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  if (user?.role !== 'Admin') {
-    return <Navigate to="/" replace />
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('logs')
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(100)
+
+        if (!error && data) {
+          setLogs(data)
+        }
+      } catch (err) {
+        console.error('Error fetching logs', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLogs()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
-  const filteredLogs = logs
-    .filter(
-      (log) =>
-        log.leadName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    )
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    try {
+      const date = new Date(dateString)
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date)
+    } catch {
+      return ''
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldAlert className="h-8 w-8 text-primary" />
-            Logs de Auditoria
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Rastreabilidade completa: histórico de alterações, gatilhos
-            automáticos e acessos.
+          <h1 className="text-3xl font-bold tracking-tight">Auditoria</h1>
+          <p className="text-muted-foreground mt-2">
+            Registro de atividades e eventos do sistema.
           </p>
         </div>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
-          <div className="space-y-1">
-            <CardTitle>Registro de Atividades</CardTitle>
-            <CardDescription>
-              Visualizando {filteredLogs.length} registros no sistema.
-            </CardDescription>
-          </div>
-          <div className="relative w-full md:w-72 shrink-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por usuário, ação ou lead..."
-              className="pl-9 w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5" />
+            Últimas Atividades
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table className="min-w-[800px]">
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[160px]">Data/Hora</TableHead>
-                  <TableHead className="w-[180px]">Usuário</TableHead>
-                  <TableHead className="w-[160px]">Ação</TableHead>
-                  <TableHead className="w-[200px]">Entidade / Lead</TableHead>
-                  <TableHead>Detalhes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      Nenhum registro de auditoria encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredLogs.map((log) => (
-                    <TableRow key={log.id} className="hover:bg-muted/30">
-                      <TableCell className="whitespace-nowrap align-top font-medium text-muted-foreground">
-                        {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm', {
-                          locale: ptBR,
-                        })}
-                      </TableCell>
-                      <TableCell className="align-top font-medium">
-                        {log.userName}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                          {log.action}
-                        </span>
-                      </TableCell>
-                      <TableCell
-                        className="align-top font-medium truncate max-w-[200px]"
-                        title={log.leadName}
-                      >
-                        {log.leadName}
-                      </TableCell>
-                      <TableCell className="align-top text-muted-foreground max-w-md whitespace-pre-wrap text-sm">
-                        {log.details}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+          <div className="space-y-4">
+            {logs.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Nenhum registro encontrado.
+              </p>
+            ) : (
+              logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex flex-col space-y-1 pb-4 border-b last:border-0 last:pb-0"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="font-medium">{log.action}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(log.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{log.details}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Usuário: {log.user_name} | Lead: {log.lead_name}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

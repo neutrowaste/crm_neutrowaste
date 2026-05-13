@@ -26,14 +26,18 @@ export function RequirePermission({
   }
 
   const hasPermission = () => {
+    if (!user) return false
+
     if (
-      user.role?.toLowerCase() === 'admin' ||
+      user.role?.trim().toLowerCase() === 'admin' ||
       user.permissions?.includes('*')
     ) {
       return true
     }
     return user.permissions?.some(
-      (p) => typeof p === 'string' && p.toLowerCase() === module.toLowerCase(),
+      (p) =>
+        typeof p === 'string' &&
+        p.trim().toLowerCase() === module.trim().toLowerCase(),
     )
   }
 

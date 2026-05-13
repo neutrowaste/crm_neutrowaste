@@ -53,13 +53,17 @@ export function Sidebar() {
   ]
 
   const hasPermission = (id: string) => {
+    if (!user) return false
     if (
-      user?.role?.toLowerCase() === 'admin' ||
-      user?.permissions?.includes('*')
-    )
+      user.role?.trim().toLowerCase() === 'admin' ||
+      user.permissions?.includes('*')
+    ) {
       return true
-    return user?.permissions?.some(
-      (p) => typeof p === 'string' && p.toLowerCase() === id.toLowerCase(),
+    }
+    return user.permissions?.some(
+      (p) =>
+        typeof p === 'string' &&
+        p.trim().toLowerCase() === id.trim().toLowerCase(),
     )
   }
 
