@@ -21,6 +21,13 @@ export interface Contract {
   expires_at: string | null
   created_at: string
   updated_at: string
+  vigencia?: string
+  objeto?: string
+  data_inicio?: string
+  data_termino?: string
+  nome_gestor?: string
+  telefone_gestor?: string
+  leads?: { name: string; company?: string }
 }
 
 interface ContractsContextType {
@@ -48,7 +55,7 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('contracts')
-        .select('*')
+        .select('*, leads(name, company)')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -74,7 +81,7 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('contracts')
         .insert([contract as any])
-        .select()
+        .select('*, leads(name, company)')
         .single()
 
       if (error) throw error
@@ -97,7 +104,7 @@ export function ContractsProvider({ children }: { children: ReactNode }) {
         .from('contracts')
         .update(updates as any)
         .eq('id', id)
-        .select()
+        .select('*, leads(name, company)')
         .single()
 
       if (error) throw error
