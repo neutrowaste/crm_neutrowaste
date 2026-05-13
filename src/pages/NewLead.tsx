@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -223,7 +224,11 @@ export default function NewLead() {
                   <FormItem>
                     <FormLabel>Valor Esperado (R$)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <CurrencyInput
+                        {...field}
+                        value={field.value || 0}
+                        onChange={(val) => field.onChange(val)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
