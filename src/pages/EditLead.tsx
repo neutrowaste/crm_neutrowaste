@@ -58,6 +58,7 @@ import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
+import { AddContractDialog } from '@/components/AddContractDialog'
 import {
   MoreHorizontal,
   UploadCloud,
@@ -103,8 +104,6 @@ export default function EditLead() {
 
   const defaultTab = searchParams.get('tab') || 'details'
   const [activeTab, setActiveTab] = useState(defaultTab)
-  const [isUploadOpen, setIsUploadOpen] = useState(false)
-  const [newContractName, setNewContractName] = useState('')
 
   const lead = leads.find((l) => l.id === id)
   const leadContracts = contracts.filter((c) => c.leadId === id)
@@ -129,32 +128,6 @@ export default function EditLead() {
       })
     }
     toast({ title: 'Sucesso', description: 'Lead atualizado com sucesso!' })
-  }
-
-  const handleUploadContract = async () => {
-    if (!newContractName.trim() || !user) return
-
-    await addContract({
-      leadId: lead.id,
-      name: newContractName,
-      status: 'Draft',
-      uploadedBy: user.id,
-      uploadedByName: user.name,
-      fileUrl: '#',
-    })
-
-    await addLog({
-      userId: user.id,
-      userName: user.name,
-      action: 'Criar',
-      leadId: lead.id,
-      leadName: lead.name,
-      details: `Novo contrato criado em rascunho: ${newContractName}`,
-    })
-
-    toast({ title: 'Sucesso', description: 'Contrato salvo com sucesso.' })
-    setNewContractName('')
-    setIsUploadOpen(false)
   }
 
   const handleStatusChange = async (
@@ -495,14 +468,11 @@ export default function EditLead() {
                   Documentos, portal e envio para assinatura digital.
                 </CardDescription>
               </div>
-              <Button
-                onClick={() => setIsUploadOpen(true)}
+              <AddContractDialog
+                defaultLeadId={lead.id}
                 className="w-full sm:w-auto"
-              >
-                <UploadCloud className="w-4 h-4 mr-2" />
-                Novo Contrato
-              </Button>
-            </CardHeader>
+              />
+            </CardHeader>{' '}
             <CardContent>
               {leadContracts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
@@ -752,67 +722,6 @@ export default function EditLead() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Anexar Novo Contrato</DialogTitle>
-            <DialogDescription>
-              Faça o upload do documento que será disponibilizado no Portal do
-              Cliente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nome do Documento</label>
-              <Input
-                placeholder="Ex: Contrato de Prestação de Serviços"
-                value={newContractName}
-                onChange={(e) => setNewContractName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Arquivo PDF</label>
-              <div className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                <UploadCloud className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Clique para selecionar ou arraste o arquivo aqui.
-                </p>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  id="file-upload"
-                  onChange={() => {
-                    if (!newContractName)
-                      setNewContractName('Novo Contrato.pdf')
-                  }}
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="absolute inset-0 cursor-pointer"
-                ></label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => setIsUploadOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              className="w-full sm:w-auto"
-              onClick={handleUploadContract}
-              disabled={!newContractName}
-            >
-              Salvar Rascunho
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

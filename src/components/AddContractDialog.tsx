@@ -22,7 +22,15 @@ import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Plus, Loader2 } from 'lucide-react'
 
-export function AddContractDialog() {
+interface AddContractDialogProps {
+  defaultLeadId?: string
+  className?: string
+}
+
+export function AddContractDialog({
+  defaultLeadId,
+  className,
+}: AddContractDialogProps = {}) {
   const { addContract } = useContracts()
   const { user } = useAuth()
   const { toast } = useToast()
@@ -31,7 +39,7 @@ export function AddContractDialog() {
   const [loading, setLoading] = useState(false)
   const [leads, setLeads] = useState<any[]>([])
 
-  const [leadId, setLeadId] = useState('')
+  const [leadId, setLeadId] = useState(defaultLeadId || '')
   const [name, setName] = useState('')
   const [vigencia, setVigencia] = useState('')
   const [objeto, setObjeto] = useState('')
@@ -43,6 +51,7 @@ export function AddContractDialog() {
 
   useEffect(() => {
     if (open) {
+      setLeadId(defaultLeadId || '')
       supabase
         .from('leads')
         .select('id, name, company')
@@ -51,7 +60,7 @@ export function AddContractDialog() {
           if (data) setLeads(data)
         })
     }
-  }, [open])
+  }, [open, defaultLeadId])
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, '')
@@ -134,7 +143,7 @@ export function AddContractDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className={className}>
           <Plus className="h-4 w-4 mr-2" /> Novo Contrato
         </Button>
       </DialogTrigger>
@@ -145,7 +154,11 @@ export function AddContractDialog() {
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
           <div className="col-span-2 space-y-2">
             <Label>Lead *</Label>
-            <Select value={leadId} onValueChange={setLeadId}>
+            <Select
+              value={leadId}
+              onValueChange={setLeadId}
+              disabled={!!defaultLeadId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o lead..." />
               </SelectTrigger>
