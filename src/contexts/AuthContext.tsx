@@ -42,18 +42,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const userIdRef = useRef<string | null>(null)
+  const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null)
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSessionUser(session?.user ?? null)
+    })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     let mounted = true
 
-    const loadProfile = async (authUser: SupabaseUser) => {
-      setIsLoading(true)
+    if (!sessionUser) {
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
+
+    const loadProfile = async () => {
       try {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('id', sessionUser.id)
           .single()
 
         if (error || !profile) {
@@ -126,39 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const handleSession = (session: any) => {
-      if (!mounted) return
-      const currentId = session?.user?.id || null
-
-      if (currentId !== userIdRef.current) {
-        userIdRef.current = currentId
-        if (currentId && session?.user) {
-          setIsLoading(true)
-          loadProfile(session.user)
-        } else {
-          setUser(null)
-          setIsLoading(false)
-        }
-      } else if (!currentId) {
-        setIsLoading(false)
-      }
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      handleSession(session)
-    })
+    loadProfile()
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
     }
-  }, [])
+  }, [sessionUser])
 
   useEffect(() => {
     if (!user?.id) {
@@ -349,8 +339,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({ is_online: false })
         .eq('id', user.id)
     }
-    userIdRef.current = null
     await supabase.auth.signOut()
+    setSessionUser(null)
     setUser(null)
   }
 

@@ -82,50 +82,82 @@ export default function ContractsPage() {
                     {contract.status}
                   </span>
                 </div>
-
-                <div className="flex justify-between gap-4">
-                  <div className="space-y-2 flex-1">
-                    {contract.vigencia && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        <span>Vigência: {contract.vigencia} meses</span>
-                      </div>
-                    )}
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1 w-full">
                     {contract.data_inicio && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        <span>
-                          Início: {formatDisplayDate(contract.data_inicio)}
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          Início
                         </span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {formatDisplayDate(contract.data_inicio)}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {contract.data_termino && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 shrink-0" />
-                        <span>
-                          Término: {formatDisplayDate(contract.data_termino)}
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          Término
                         </span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {formatDisplayDate(contract.data_termino)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {contract.vigencia && (
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          Vigência
+                        </span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {contract.vigencia} meses
+                          </span>
+                        </div>
                       </div>
                     )}
                     {contract.nome_gestor && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <User className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{contract.nome_gestor}</span>
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          Gestor
+                        </span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span
+                            className="truncate"
+                            title={contract.nome_gestor}
+                          >
+                            {contract.nome_gestor}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {contract.telefone_gestor && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4 shrink-0" />
-                        <span>{contract.telefone_gestor}</span>
+                      <div className="flex flex-col space-y-1 col-span-2 sm:col-span-1">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                          Telefone
+                        </span>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">
+                            {contract.telefone_gestor}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
 
                   {contract.data_termino && (
-                    <div className="flex flex-col items-end justify-center border-l pl-4 text-right shrink-0">
-                      <span className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Prazo
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l pt-3 sm:pt-0 sm:pl-4 mt-2 sm:mt-0 w-full sm:w-auto shrink-0 bg-secondary/20 sm:bg-transparent p-3 sm:p-0 rounded-md sm:rounded-none">
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0 sm:mb-1 flex items-center gap-1">
+                        Prazo Restante
                       </span>
                       {(() => {
                         const days = calculateRemainingDays(
@@ -136,10 +168,10 @@ export default function ContractsPage() {
                         return (
                           <span
                             className={cn(
-                              'text-sm font-bold',
+                              'text-lg sm:text-base font-bold',
                               isExpiringSoon
-                                ? 'text-red-600'
-                                : 'text-green-600',
+                                ? 'text-red-600 dark:text-red-500'
+                                : 'text-green-600 dark:text-green-500',
                             )}
                           >
                             {days > 0
@@ -152,7 +184,7 @@ export default function ContractsPage() {
                       })()}
                     </div>
                   )}
-                </div>
+                </div>{' '}
               </CardContent>
               {contract.file_url && (
                 <CardFooter className="pt-0">
